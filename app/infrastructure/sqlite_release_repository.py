@@ -26,6 +26,7 @@ class SQLiteReleaseRepository:
                 stage=row["stage"],
                 start_date=row["start_date"] if row["start_date"] else None,
                 release_date=row["release_date"] if row["release_date"] else None,
+                jira_fix_version=row["jira_fix_version"] if row["jira_fix_version"] else None,
             )
             for row in rows
         ]
@@ -36,8 +37,8 @@ class SQLiteReleaseRepository:
 
         conn.execute(
             """
-            INSERT INTO releases(project_id, version, status, stage, start_date, release_date)
-            VALUES (?,?,?,?,?,?)
+            INSERT INTO releases(project_id, version, status, stage, start_date, release_date, jira_fix_version)
+            VALUES (?,?,?,?,?,?,?)
             """,
             (
                 release.project_id,
@@ -46,6 +47,7 @@ class SQLiteReleaseRepository:
                 release.stage,
                 release.start_date.isoformat() if release.start_date else None,
                 release.release_date.isoformat() if release.release_date else None,
+                release.jira_fix_version,
             ),
         )
 
@@ -97,6 +99,7 @@ class SQLiteReleaseRepository:
         stage: str,
         start_date: date | None = None,
         release_date: date | None = None,
+        jira_fix_version: str | None = None,
         old_stage: str | None = None,
     ):
 
@@ -105,7 +108,7 @@ class SQLiteReleaseRepository:
         conn.execute(
             """
             UPDATE releases
-            SET status=?, stage=?, start_date=?, release_date=?
+            SET status=?, stage=?, start_date=?, release_date=?, jira_fix_version=?
             WHERE id=?
             """,
             (
@@ -113,6 +116,7 @@ class SQLiteReleaseRepository:
                 stage,
                 start_date.isoformat() if start_date else None,
                 release_date.isoformat() if release_date else None,
+                jira_fix_version,
                 release_id,
             ),
         )
@@ -179,4 +183,5 @@ class SQLiteReleaseRepository:
             stage=row["stage"],
             start_date=row["start_date"] if row["start_date"] else None,
             release_date=row["release_date"] if row["release_date"] else None,
+            jira_fix_version=row["jira_fix_version"] if row["jira_fix_version"] else None,
         )

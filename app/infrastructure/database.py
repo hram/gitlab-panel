@@ -32,10 +32,22 @@ def init_db():
             stage TEXT NOT NULL,
             start_date TEXT,
             release_date TEXT,
+            jira_fix_version TEXT,
             FOREIGN KEY (project_id) REFERENCES projects(id) ON DELETE CASCADE
         )
         """
     )
+
+    # Добавляем колонку jira_fix_version если её нет (для существующих БД)
+    try:
+        conn.execute(
+            """
+            ALTER TABLE releases ADD COLUMN jira_fix_version TEXT
+            """
+        )
+    except sqlite3.OperationalError:
+        # Колонка уже существует
+        pass
 
     conn.execute(
         """

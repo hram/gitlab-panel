@@ -29,6 +29,14 @@
         >
             <div class="modal-body">
 
+                <div class="form-group">
+                    <label class="form-label">Jira Fix Version</label>
+                    <input class="form-input" type="text" name="jira_fix_version"
+                           value="{{ release.jira_fix_version if release.jira_fix_version else '' }}"
+                           placeholder="например: 12345">
+                    <div class="form-hint">ID версии в Jira (необязательно)</div>
+                </div>
+
                 <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
                     <div class="form-group">
                         <label class="form-label">Статус</label>

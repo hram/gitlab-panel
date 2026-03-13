@@ -21,6 +21,7 @@ class ReleaseService:
         stage: str,
         start_date: str | None = None,
         release_date: str | None = None,
+        jira_fix_version: str | None = None,
     ):
 
         if not self._is_valid_semver(version):
@@ -40,6 +41,7 @@ class ReleaseService:
             stage=stage,
             start_date=start,
             release_date=release,
+            jira_fix_version=jira_fix_version,
         )
 
         self.repo.create_release(release_obj)
@@ -54,6 +56,7 @@ class ReleaseService:
         stage: str,
         start_date: str | None = None,
         release_date: str | None = None,
+        jira_fix_version: str | None = None,
     ):
         # Получаем текущий релиз для сохранения old_stage
         current_release = self.repo.get_release_by_id(release_id)
@@ -65,6 +68,7 @@ class ReleaseService:
             stage=stage,
             start_date=self._parse_date(start_date) if start_date else None,
             release_date=self._parse_date(release_date) if release_date else None,
+            jira_fix_version=jira_fix_version,
             old_stage=old_stage,
         )
 

@@ -11,3 +11,4 @@ class Release:
     stage: str   # "develop" | "alpha" | "beta" | "prod"
     start_date: date | None
     release_date: date | None
+    jira_fix_version: str | None = None

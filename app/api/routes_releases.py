@@ -6,6 +6,7 @@ from app.application.project_service import ProjectService
 from app.application.stage_service import StageService
 from app.application.branch_service import BranchService
 from app.application.commit_check_service import CommitCheckService
+from app.infrastructure.config import JIRA_URL
 
 
 router = APIRouter()
@@ -39,6 +40,7 @@ def list_releases(
             "stages": stages,
             "error": None,
             "source_branch": source_branch,
+            "jira_url": JIRA_URL,
         },
     )
 
@@ -54,6 +56,7 @@ def create_release(
     release_date: str = Form(default=None),
     create_branches: str = Form(default=None),
     source_branch: str = Form(default=None),
+    jira_fix_version: str = Form(default=None),
 ):
 
     error = None
@@ -68,6 +71,7 @@ def create_release(
             stage=stage,
             start_date=start_date if start_date else None,
             release_date=release_date if release_date else None,
+            jira_fix_version=jira_fix_version if jira_fix_version else None,
         )
 
         # Если выбран чекбокс "Создать ветки"
@@ -101,6 +105,7 @@ def create_release(
             "error": error,
             "warning": warning,
             "created_branches": created_branches,
+            "jira_url": JIRA_URL,
         },
     )
 
@@ -127,6 +132,7 @@ def delete_release(
             "project_name": project.name if project else str(project_id),
             "stages": stages,
             "error": None,
+            "jira_url": JIRA_URL,
         },
     )
 
@@ -142,6 +148,7 @@ def update_release(
     release_date: str = Form(default=None),
     create_mr: str = Form(default=None),
     jira_key: str = Form(default=None),
+    jira_fix_version: str = Form(default=None),
 ):
 
     error = None
@@ -160,6 +167,7 @@ def update_release(
         stage=stage,
         start_date=start_date if start_date else None,
         release_date=release_date if release_date else None,
+        jira_fix_version=jira_fix_version if jira_fix_version else None,
     )
 
     # Если стадия изменилась и выбрано создание MR
@@ -199,6 +207,7 @@ def update_release(
             "error": error,
             "warning": warning,
             "mr_info": mr_info,
+            "jira_url": JIRA_URL,
         },
     )
 

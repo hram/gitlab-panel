@@ -60,6 +60,7 @@
         <thead>
         <tr>
             <th>Версия</th>
+            <th>Jira</th>
             <th>Статус</th>
             <th>Стадия</th>
             <th>Начало</th>
@@ -75,6 +76,23 @@
           <span style="font-family:var(--font-mono);font-weight:500;color:var(--text-primary)">
             {{ r.version }}
           </span>
+            </td>
+
+            <td>
+                {% if r.jira_fix_version %}
+                <a href="{{ jira_url }}/projects/TBLT/versions/{{ r.jira_fix_version }}"
+                   target="_blank"
+                   rel="noopener noreferrer"
+                   style="font-family:var(--font-mono);font-size:12px;color:var(--accent);text-decoration:none;display:inline-flex;align-items:center;gap:4px">
+                    {{ r.jira_fix_version }}
+                    <svg viewBox="0 0 16 16" fill="currentColor" width="10" height="10" style="opacity:0.6">
+                        <path fill-rule="evenodd" d="M8.636 3.5a.5.5 0 0 0-.5-.5H1.5A1.5 1.5 0 0 0 0 4.5v10A1.5 1.5 0 0 0 1.5 16h10a1.5 1.5 0 0 0 1.5-1.5V7.864a.5.5 0 0 0-1 0V14.5a.5.5 0 0 1-.5.5h-10a.5.5 0 0 1-.5-.5v-10a.5.5 0 0 1 .5-.5h6.636a.5.5 0 0 0 .5-.5"/>
+                        <path fill-rule="evenodd" d="M16 .5a.5.5 0 0 0-.5-.5h-5a.5.5 0 0 0 0 1h3.793L6.146 9.146a.5.5 0 1 0 .708.708L15 1.707V5.5a.5.5 0 0 0 1 0z"/>
+                    </svg>
+                </a>
+                {% else %}
+                <span style="font-family:var(--font-mono);font-size:12px;color:var(--text-muted)">—</span>
+                {% endif %}
             </td>
 
             <td>

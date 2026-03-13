@@ -54,7 +54,7 @@
             <table>
                 <thead>
                 <tr>
-                    <th>Версия</th><th>Статус</th><th>Стадия</th>
+                    <th>Версия</th><th>Jira</th><th>Статус</th><th>Стадия</th>
                     <th>Начало</th><th>Релиз</th><th></th>
                 </tr>
                 </thead>
@@ -62,6 +62,7 @@
                 {% for i in range(3) %}
                 <tr>
                     <td><div class="skeleton" style="height:14px;width:60px"></div></td>
+                    <td><div class="skeleton" style="height:14px;width:50px"></div></td>
                     <td><div class="skeleton" style="height:20px;width:80px;border-radius:10px"></div></td>
                     <td><div class="skeleton" style="height:14px;width:70px"></div></td>
                     <td><div class="skeleton" style="height:14px;width:80px"></div></td>
@@ -105,6 +106,13 @@
                     <input class="form-input" type="text" name="version"
                            placeholder="X.Y.Z" required pattern="\d+\.\d+\.\d+">
                     <div class="form-hint">Формат: 1.2.3</div>
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label">Jira Fix Version</label>
+                    <input class="form-input" type="text" name="jira_fix_version"
+                           placeholder="например: 12345">
+                    <div class="form-hint">ID версии в Jira (необязательно)</div>
                 </div>
 
                 <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
