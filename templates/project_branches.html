@@ -1,0 +1,94 @@
+{% extends "layout.html" %}
+
+{% block content %}
+
+<h2>Ветки проекта {{ project_name }}</h2>
+
+<div style="display:flex; gap:10px; align-items:center">
+
+<select id="branch-template">
+
+<option value="">Шаблоны</option>
+<option value="develop">develop</option>
+<option value="alpha">alpha</option>
+<option value="stage">stage</option>
+<option value="prod">prod</option>
+<option value="feature">feature</option>
+
+</select>
+
+<div style="position:relative">
+
+<input
+    id="search-input"
+    type="text"
+    name="search"
+    placeholder="Поиск ветки..."
+    hx-get="/api/branches/{{ project_id }}"
+    hx-trigger="keyup changed delay:300ms"
+    hx-target="#branch-table"
+/>
+
+<span
+    id="clear-search"
+    style="
+        position:absolute;
+        right:8px;
+        top:4px;
+        cursor:pointer;
+        font-weight:bold;
+        display:none;
+    "
+>
+✕
+</span>
+
+</div>
+
+</div>
+
+<br>
+
+<div
+    id="branch-table"
+    hx-get="/api/branches/{{ project_id }}"
+    hx-trigger="load"
+>
+    loading...
+</div>
+
+<script>
+
+const templateSelect = document.getElementById("branch-template")
+const searchInput = document.getElementById("search-input")
+const clearBtn = document.getElementById("clear-search")
+
+function updateClearButton() {
+    clearBtn.style.display = searchInput.value ? "block" : "none"
+}
+
+searchInput.addEventListener("input", updateClearButton)
+
+templateSelect.addEventListener("change", () => {
+
+    searchInput.value = templateSelect.value
+
+    updateClearButton()
+
+    searchInput.dispatchEvent(new Event("keyup"))
+
+})
+
+clearBtn.addEventListener("click", () => {
+
+    searchInput.value = ""
+
+    updateClearButton()
+
+    searchInput.dispatchEvent(new Event("keyup"))
+
+})
+
+</script>
+
+{% endblock %}

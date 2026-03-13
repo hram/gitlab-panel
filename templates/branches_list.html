@@ -1,0 +1,36 @@
+<table border="1">
+
+<tr>
+<th>Branch</th>
+<th>Commit</th>
+<th>Protected</th>
+</tr>
+
+{% for branch in branches %}
+
+<tr>
+
+<td>
+
+{% if "TBLT-" in branch.name %}
+
+<span style="color:blue;font-weight:bold;">
+{{ branch.name }}
+</span>
+
+{% else %}
+
+{{ branch.name }}
+
+{% endif %}
+
+</td>
+
+<td>{{ branch.commit_sha[:8] }}</td>
+<td>{{ branch.protected }}</td>
+
+</tr>
+
+{% endfor %}
+
+</table>

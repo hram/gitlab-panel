@@ -1,0 +1,45 @@
+{% extends "layout.html" %}
+
+{% block content %}
+
+<h1>Стадии проекта {{ project_name }}</h1>
+
+<h2>Добавить стадию</h2>
+
+<form
+    hx-post="/api/projects/{{ project_id }}/stages/create"
+    hx-target="#stages-table"
+    hx-swap="innerHTML"
+    hx-on::after-request="this.reset()"
+>
+
+<input
+    type="text"
+    name="name"
+    placeholder="Имя стадии"
+    required
+>
+
+<input
+    type="number"
+    name="order"
+    placeholder="Порядковый номер"
+    required
+    min="0"
+>
+
+<button type="submit">
+Добавить стадию
+</button>
+
+</form>
+
+<div
+    id="stages-table"
+    hx-get="/api/projects/{{ project_id }}/stages"
+    hx-trigger="load, addStage from:body"
+>
+    loading...
+</div>
+
+{% endblock %}

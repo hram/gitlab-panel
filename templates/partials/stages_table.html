@@ -1,0 +1,34 @@
+{% if error %}
+<div style="color: red; margin-bottom: 10px;">{{ error }}</div>
+{% endif %}
+
+<table border="1" style="width: 100%; border-collapse: collapse;">
+<thead>
+<tr>
+    <th>Порядок</th>
+    <th>Имя стадии</th>
+    <th>Действия</th>
+</tr>
+</thead>
+<tbody>
+{% for stage in stages %}
+<tr>
+    <td style="text-align: center;">{{ stage.order }}</td>
+    <td>{{ stage.name }}</td>
+    <td style="text-align: center;">
+        <form style="display:inline;">
+            <button
+                type="submit"
+                hx-post="/api/projects/{{ stage.project_id }}/stages/{{ stage.id }}/delete"
+                hx-target="#stages-table"
+                hx-swap="innerHTML"
+                hx-confirm="Удалить стадию '{{ stage.name }}'?"
+            >
+                Удалить
+            </button>
+        </form>
+    </td>
+</tr>
+{% endfor %}
+</tbody>
+</table>

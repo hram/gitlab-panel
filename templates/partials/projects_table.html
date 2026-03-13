@@ -1,0 +1,65 @@
+{% if error %}
+<div style="color: red; margin-bottom: 10px;">{{ error }}</div>
+{% endif %}
+
+<table id="projects-table">
+
+<tr>
+    <th>Name</th>
+    <th>URL</th>
+    <th>ID</th>
+    <th>Branches</th>
+    <th>Releases</th>
+    <th>Stages</th>
+    <th></th>
+</tr>
+
+{% for p in projects %}
+
+<tr>
+
+<td>{{ p.name }}</td>
+
+<td>
+<a href="{{ p.url }}" target="_blank">
+    open
+</a>
+</td>
+
+<td>{{ p.gitlab_project_id }}</td>
+
+<td>
+<a href="/branches/{{ p.gitlab_project_id }}">
+    view branches
+</a>
+</td>
+
+<td>
+<a href="/projects/{{ p.gitlab_project_id }}/releases">
+    view releases
+</a>
+</td>
+
+<td>
+<a href="/projects/{{ p.gitlab_project_id }}/stages">
+    view stages
+</a>
+</td>
+
+<td>
+
+<button
+    hx-post="/projects/delete/{{ p.id }}"
+    hx-target="#projects-table"
+    hx-swap="outerHTML"
+>
+delete
+</button>
+
+</td>
+
+</tr>
+
+{% endfor %}
+
+</table>

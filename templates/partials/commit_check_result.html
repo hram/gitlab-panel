@@ -1,0 +1,108 @@
+{% extends "layout.html" %}
+
+{% block title %}Проверка коммитов - {{ project_name }}{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <h2>Проверка коммитов между релизами</h2>
+    <p class="text-muted">
+        Проект: <strong>{{ project_name }}</strong>
+    </p>
+    
+    <a href="/api/projects/{{ project_id }}/releases" class="btn btn-secondary mb-3">
+        ← Назад к релизам
+    </a>
+    
+    {% if result.total_missing == 0 %}
+        <div class="alert alert-success">
+            <i class="bi bi-check-circle"></i>
+            Все коммиты в релизах "In Progress" присутствуют в более новых версиях.
+        </div>
+    {% else %}
+        <div class="alert alert-warning">
+            <i class="bi bi-exclamation-triangle"></i>
+            Найдено <strong>{{ result.total_missing }}</strong> коммитов в старых релизах "In Progress", которых нет в более новых.
+        </div>
+    {% endif %}
+    
+    {% if result.checks %}
+        <div class="alert alert-info mb-3">
+            <i class="bi bi-info-circle"></i>
+            Проверка выполнена для пар релизов в стадии <strong>"In Progress"</strong> от младшего к старшему.
+        </div>
+        <div class="accordion" id="commitCheckAccordion">
+            {% for check in result.checks %}
+                <div class="accordion-item">
+                    <h3 class="accordion-header" id="heading{{ loop.index }}">
+                        <button class="accordion-button {% if not check.has_missing_commits %}collapsed{% endif %}" 
+                                type="button" 
+                                data-bs-toggle="collapse" 
+                                data-bs-target="#collapse{{ loop.index }}"
+                                aria-expanded="{% if check.has_missing_commits %}true{% else %}false{% endif %}"
+                                aria-controls="collapse{{ loop.index }}">
+                            
+                            {% if check.has_missing_commits %}
+                                <span class="badge bg-warning text-dark me-2">
+                                    {{ check.missing_count }} коммитов
+                                </span>
+                            {% else %}
+                                <span class="badge bg-success me-2">OK</span>
+                            {% endif %}
+                            
+                            <strong>{{ check.branch }}</strong> → <strong>{{ check.newer_branch }}</strong>
+                        </button>
+                    </h3>
+                    <div id="collapse{{ loop.index }}" 
+                         class="accordion-collapse collapse {% if check.has_missing_commits %}show{% endif %}"
+                         aria-labelledby="heading{{ loop.index }}"
+                         data-bs-parent="#commitCheckAccordion">
+                        <div class="accordion-body">
+                            {% if check.has_missing_commits %}
+                                <p class="mb-2">
+                                    Ветка <code>{{ check.branch }}</code> содержит коммиты, 
+                                    которых нет в <code>{{ check.newer_branch }}</code>:
+                                </p>
+                                <div class="table-responsive">
+                                    <table class="table table-sm table-striped">
+                                        <thead>
+                                            <tr>
+                                                <th>Коммит</th>
+                                                <th>Сообщение</th>
+                                                <th>Автор</th>
+                                                <th>Дата</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            {% for commit in check.missing_commits %}
+                                                <tr>
+                                                    <td>
+                                                        <a href="{{ commit.web_url }}" target="_blank" class="text-monospace">
+                                                            {{ commit.short_id }}
+                                                        </a>
+                                                    </td>
+                                                    <td>{{ commit.title }}</td>
+                                                    <td>{{ commit.author_name }}</td>
+                                                    <td>{{ commit.created_at[:10] if commit.created_at else '' }}</td>
+                                                </tr>
+                                            {% endfor %}
+                                        </tbody>
+                                    </table>
+                                </div>
+                            {% else %}
+                                <p class="text-success mb-0">
+                                    <i class="bi bi-check-circle"></i>
+                                    Все коммиты из <code>{{ check.branch }}</code> присутствуют в <code>{{ check.newer_branch }}</code>.
+                                </p>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+            {% endfor %}
+        </div>
+    {% else %}
+        <div class="alert alert-info">
+            Нет подходящих пар релизов "In Progress" для проверки.
+        </div>
+    {% endif %}
+</div>
+{% endblock %}

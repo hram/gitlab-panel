@@ -1,0 +1,96 @@
+{% if error %}
+<div style="color: red; margin-bottom: 10px;">{{ error }}</div>
+{% endif %}
+
+{% if warning %}
+<div style="color: orange; margin-bottom: 10px;">⚠ {{ warning }}</div>
+{% endif %}
+
+{% if created_branches %}
+<div style="color: green; margin-bottom: 10px;">
+    ✓ Созданы ветки: {{ created_branches|join(", ") }}
+</div>
+{% endif %}
+
+{% if mr_info and mr_info.mr_created %}
+<div style="color: green; margin-bottom: 10px;">
+    ✓ MR создан: <a href="{{ mr_info.mr_created.web_url }}" target="_blank">{{ mr_info.mr_created.title }}</a>
+    {% if mr_info.jira_transition %}
+    <br>✓ Задача {{ mr_info.branch_created.replace('feature/', '') }} переведена в CodeReview
+    {% endif %}
+</div>
+{% endif %}
+
+<div style="margin-bottom: 15px;">
+    <a
+        href="/api/projects/{{ project_id }}/releases/check-commits"
+        class="btn btn-success"
+        title="Проверить коммиты между релизами"
+    >
+        🔍 Проверить коммиты в релизах
+    </a>
+</div>
+
+<table id="releases-table">
+
+<tr>
+    <th>Version</th>
+    <th>Status</th>
+    <th>Stage</th>
+    <th>Start Date</th>
+    <th>Release Date</th>
+    <th></th>
+</tr>
+
+{% for r in releases %}
+
+<tr>
+
+<td>{{ r.version }}</td>
+
+<td>
+    {% if r.status == "released" %}
+    <span style="color: green;">✓ Released</span>
+    {% else %}
+    <span style="color: orange;">⏳ In Progress</span>
+    {% endif %}
+</td>
+
+<td>{{ r.stage }}</td>
+
+<td>{{ r.start_date if r.start_date else "-" }}</td>
+
+<td>{{ r.release_date if r.release_date else "-" }}</td>
+
+<td>
+
+<button
+    hx-post="/api/releases/{{ r.id }}/delete?project_id={{ project_id }}"
+    hx-target="#releases-table"
+    hx-swap="outerHTML"
+>
+delete
+</button>
+
+<button
+    hx-get="/api/releases/{{ r.id }}/edit?project_id={{ project_id }}"
+    hx-target="#release-edit-modal"
+    hx-swap="innerHTML"
+>
+edit
+</button>
+
+<a
+    href="/api/releases/{{ r.id }}/history?project_id={{ project_id }}"
+    style="margin-left: 5px; text-decoration: none; color: #007bff;"
+>
+история
+</a>
+
+</td>
+
+</tr>
+
+{% endfor %}
+
+</table>

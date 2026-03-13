@@ -1,0 +1,177 @@
+<div class="modal-overlay" style="position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); display: flex; align-items: center; justify-content: center; z-index: 1000;">
+    <div class="modal-dialog" style="background: white; padding: 20px; border-radius: 8px; min-width: 400px; box-shadow: 0 4px 6px rgba(0,0,0,0.1);">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
+            <h3 style="margin: 0;">Редактировать релиз {{ release.version }}</h3>
+            <button
+                type="button"
+                onclick="this.closest('.modal-overlay').remove()"
+                style="background: none; border: none; font-size: 24px; cursor: pointer; padding: 0; line-height: 1;"
+            >&times;</button>
+        </div>
+
+        <!-- Скрытые поля для старой стадии -->
+        <input type="hidden" id="old-stage" value="{{ release.stage }}">
+        <input type="hidden" id="release-version" value="{{ release.version }}">
+        <input type="hidden" id="project-id" value="{{ project_id }}">
+
+        <form
+            id="release-edit-form"
+            hx-post="/api/releases/{{ release.id }}/update?project_id={{ project_id }}"
+            hx-target="#releases-table"
+            hx-swap="outerHTML"
+        >
+            <div style="margin-bottom: 15px;">
+                <label style="display: block; margin-bottom: 5px; font-weight: bold;">Status:</label>
+                <select name="status" required style="width: 100%; padding: 8px; border: 1px solid #ccc; border-radius: 4px;">
+                    <option value="in_progress" {% if release.status == "in_progress" %}selected{% endif %}>В работе</option>
+                    <option value="released" {% if release.status == "released" %}selected{% endif %}>Зарелизен</option>
+                </select>
+            </div>
+
+            <div style="margin-bottom: 15px;">
+                <label style="display: block; margin-bottom: 5px; font-weight: bold;">Stage:</label>
+                <select 
+                    name="stage" 
+                    id="stage-select"
+                    required 
+                    style="width: 100%; padding: 8px; border: 1px solid #ccc; border-radius: 4px;"
+                    onchange="onStageChange()"
+                >
+                    {% for stage in stages %}
+                    <option value="{{ stage.name }}" {% if stage.name == release.stage %}selected{% endif %}>
+                        {{ stage.name }}
+                    </option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <!-- Диалог подтверждения создания MR -->
+            <div id="mr-confirm-dialog" style="display: none; margin-bottom: 15px; padding: 15px; background: #f5f5f5; border-radius: 4px; border: 1px solid #ddd;">
+                <h4 style="margin: 0 0 10px 0; color: #333;">Создать Merge Request?</h4>
+                <p style="margin: 10px 0; font-size: 14px;">
+                    Влить изменения из ветки <strong id="source-branch-display"></strong> 
+                    в ветку <strong id="target-branch-display"></strong>
+                </p>
+                <div style="margin: 10px 0;">
+                    <label style="display: block; margin-bottom: 5px; font-weight: bold; font-size: 14px;">Jira Task Key:</label>
+                    <input
+                        type="text"
+                        id="jira-key-input"
+                        placeholder="TBLT-5677"
+                        pattern="[A-Z]+-\d+"
+                        style="width: 100%; padding: 8px; border: 1px solid #ccc; border-radius: 4px; box-sizing: border-box;"
+                    >
+                </div>
+                <div style="margin: 10px 0;">
+                    <label style="display: flex; align-items: center; gap: 8px; font-size: 14px;">
+                        <input type="checkbox" id="create-mr-checkbox" checked>
+                        <span>Создать MR в GitLab</span>
+                    </label>
+                </div>
+            </div>
+
+            <div style="margin-bottom: 15px;">
+                <label style="display: block; margin-bottom: 5px; font-weight: bold;">Start Date:</label>
+                <input
+                    type="date"
+                    name="start_date"
+                    value="{{ release.start_date if release.start_date else '' }}"
+                    style="width: 100%; padding: 8px; border: 1px solid #ccc; border-radius: 4px; box-sizing: border-box;"
+                >
+            </div>
+
+            <div style="margin-bottom: 15px;">
+                <label style="display: block; margin-bottom: 5px; font-weight: bold;">Release Date:</label>
+                <input
+                    type="date"
+                    name="release_date"
+                    value="{{ release.release_date if release.release_date else '' }}"
+                    style="width: 100%; padding: 8px; border: 1px solid #ccc; border-radius: 4px; box-sizing: border-box;"
+                >
+            </div>
+
+            <div style="display: flex; gap: 10px; justify-content: flex-end;">
+                <button
+                    type="button"
+                    onclick="this.closest('.modal-overlay').remove()"
+                    style="padding: 8px 16px; border: 1px solid #ccc; background: white; border-radius: 4px; cursor: pointer;"
+                >Отмена</button>
+                <button
+                    type="button"
+                    id="confirm-mr-btn"
+                    onclick="submitFormWithMr()"
+                    style="display: none; padding: 8px 16px; border: none; background: #28a745; color: white; border-radius: 4px; cursor: pointer;"
+                >OK</button>
+                <button
+                    type="submit"
+                    id="save-btn"
+                    style="padding: 8px 16px; border: none; background: #007bff; color: white; border-radius: 4px; cursor: pointer;"
+                >Сохранить</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script>
+let stageChanged = false;
+
+function onStageChange() {
+    const oldStage = document.getElementById('old-stage').value;
+    const newStage = document.getElementById('stage-select').value;
+    const version = document.getElementById('release-version').value;
+    const confirmDialog = document.getElementById('mr-confirm-dialog');
+    const confirmBtn = document.getElementById('confirm-mr-btn');
+    const saveBtn = document.getElementById('save-btn');
+
+    if (oldStage !== newStage) {
+        stageChanged = true;
+        document.getElementById('source-branch-display').textContent = oldStage + '/' + version;
+        document.getElementById('target-branch-display').textContent = newStage + '/' + version;
+        confirmDialog.style.display = 'block';
+        confirmBtn.style.display = 'inline-block';
+        saveBtn.style.display = 'none';
+    } else {
+        stageChanged = false;
+        confirmDialog.style.display = 'none';
+        confirmBtn.style.display = 'none';
+        saveBtn.style.display = 'inline-block';
+    }
+}
+
+function submitFormWithMr() {
+    const jiraKey = document.getElementById('jira-key-input').value;
+    const createMr = document.getElementById('create-mr-checkbox').checked;
+    const form = document.getElementById('release-edit-form');
+
+    if (createMr && !jiraKey) {
+        alert('Введите Jira Task Key');
+        return;
+    }
+
+    // Добавляем скрытые поля в форму
+    const mrInput = document.createElement('input');
+    mrInput.type = 'hidden';
+    mrInput.name = 'create_mr';
+    mrInput.value = createMr ? 'true' : 'false';
+    form.appendChild(mrInput);
+
+    const jiraInput = document.createElement('input');
+    jiraInput.type = 'hidden';
+    jiraInput.name = 'jira_key';
+    jiraInput.value = jiraKey;
+    form.appendChild(jiraInput);
+
+    // Отправляем форму через HTMX
+    htmx.trigger(form, 'submit');
+}
+
+// Закрытие модального окна после успешного обновления
+document.addEventListener('htmx:afterRequest', function(evt) {
+    if (evt.detail.successful) {
+        const modal = document.querySelector('.modal-overlay');
+        if (modal) {
+            modal.remove();
+        }
+    }
+});
+</script>

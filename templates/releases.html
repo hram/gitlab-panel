@@ -1,0 +1,77 @@
+{% extends "layout.html" %}
+
+{% block content %}
+
+<h1>Релизы проекта {{ project_name }}</h1>
+
+<h2>Добавить релиз</h2>
+
+<form
+    hx-post="/api/projects/{{ project_id }}/releases/create"
+    hx-target="#releases-table"
+    hx-swap="outerHTML"
+>
+
+<input
+    type="text"
+    name="version"
+    placeholder="Версия (X.Y.Z)"
+    required
+    pattern="\d+\.\d+\.\d+"
+>
+
+<select name="status" required>
+    <option value="in_progress">В работе</option>
+    <option value="released">Зарелизен</option>
+</select>
+
+<select name="stage" required>
+    {% for stage in stages %}
+    <option value="{{ stage.name }}">{{ stage.name }}</option>
+    {% endfor %}
+</select>
+
+<input
+    type="date"
+    name="start_date"
+    placeholder="Дата начала"
+>
+
+<input
+    type="date"
+    name="release_date"
+    placeholder="Дата релиза"
+>
+
+<div style="margin: 10px 0;">
+    <input type="hidden" name="source_branch" value="{{ source_branch }}">
+    <label style="display: flex; align-items: center; gap: 8px; cursor: pointer;">
+        <input type="checkbox" name="create_branches" value="true">
+        <span>Создать ветки ({{ stages|length }} шт.)</span>
+    </label>
+    <small style="color: #666;">
+        Будут созданы ветки: {% for stage in stages %}{{ stage.name }}/&lt;version&gt;{% if not loop.last %}, {% endif %}{% endfor %}
+    </small>
+    <br>
+    <small style="color: #666;">
+        От ветки: <strong>{{ source_branch }}</strong>
+    </small>
+</div>
+
+<button type="submit">
+Добавить релиз
+</button>
+
+</form>
+
+<div
+    id="releases-table"
+    hx-get="/api/projects/{{ project_id }}/releases"
+    hx-trigger="load"
+>
+    loading...
+</div>
+
+<div id="release-edit-modal"></div>
+
+{% endblock %}

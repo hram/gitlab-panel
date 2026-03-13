@@ -1,0 +1,46 @@
+{% extends "layout.html" %}
+
+{% block content %}
+
+<h1>Projects</h1>
+
+<h2>Add project</h2>
+
+<form
+    hx-post="/projects/create"
+    hx-target="#projects-table"
+    hx-swap="outerHTML"
+>
+
+<input
+    type="text"
+    name="name"
+    placeholder="Project name"
+    required
+>
+
+<input
+    type="text"
+    name="url"
+    placeholder="Project URL"
+    required
+>
+
+<input
+    type="text"
+    name="gitlab_project_id"
+    placeholder="Gitlab project id"
+    required
+>
+
+<button type="submit">
+Add project
+</button>
+
+</form>
+
+<div id="projects-table">
+    {% include "partials/projects_table.html" %}
+</div>
+
+{% endblock %}
