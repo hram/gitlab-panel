@@ -1,46 +1,90 @@
 {% extends "layout.html" %}
 
+{% block title %}Проекты — GitLab Panel{% endblock %}
+
+{% block breadcrumbs %}
+<a href="/">Главная</a>
+<span class="sep">/</span>
+<span class="current">Проекты</span>
+{% endblock %}
+
+{% block topbar_actions %}
+<button class="btn btn-primary" onclick="openAddModal()">
+    <svg viewBox="0 0 16 16" fill="currentColor">
+        <path d="M8 2a.5.5 0 0 1 .5.5v5h5a.5.5 0 0 1 0 1h-5v5a.5.5 0 0 1-1 0v-5h-5a.5.5 0 0 1 0-1h5v-5A.5.5 0 0 1 8 2"/>
+    </svg>
+    Добавить проект
+</button>
+{% endblock %}
+
 {% block content %}
 
-<h1>Projects</h1>
-
-<h2>Add project</h2>
-
-<form
-    hx-post="/projects/create"
-    hx-target="#projects-table"
-    hx-swap="outerHTML"
->
-
-<input
-    type="text"
-    name="name"
-    placeholder="Project name"
-    required
->
-
-<input
-    type="text"
-    name="url"
-    placeholder="Project URL"
-    required
->
-
-<input
-    type="text"
-    name="gitlab_project_id"
-    placeholder="Gitlab project id"
-    required
->
-
-<button type="submit">
-Add project
-</button>
-
-</form>
+<div class="page-header">
+    <div>
+        <div class="page-title">Проекты</div>
+        <div class="page-subtitle">Подключённые GitLab-проекты</div>
+    </div>
+</div>
 
 <div id="projects-table">
     {% include "partials/projects_table.html" %}
 </div>
 
+<div class="modal-overlay" id="add-modal" style="display:none"
+     onclick="if(event.target===this)closeAddModal()">
+    <div class="modal">
+        <div class="modal-header">
+            <div class="modal-title">Добавить проект</div>
+            <button class="modal-close" onclick="closeAddModal()">
+                <svg viewBox="0 0 16 16" fill="currentColor" width="16" height="16">
+                    <path d="M4.646 4.646a.5.5 0 0 1 .708 0L8 7.293l2.646-2.647a.5.5 0 0 1 .708.708L8.707 8l2.647 2.646a.5.5 0 0 1-.708.708L8 8.707l-2.646 2.647a.5.5 0 0 1-.708-.708L7.293 8 4.646 5.354a.5.5 0 0 1 0-.708"/>
+                </svg>
+            </button>
+        </div>
+        <form
+                hx-post="/projects/create"
+                hx-target="#projects-table"
+                hx-swap="outerHTML"
+                hx-on::after-request="onProjectAdded(event)"
+        >
+            <div class="modal-body">
+                <div class="form-group">
+                    <label class="form-label">Название проекта</label>
+                    <input class="form-input" type="text" name="name"
+                           placeholder="например: backend-api" required>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">URL проекта</label>
+                    <input class="form-input" type="text" name="url"
+                           placeholder="https://gitlab.com/team/backend-api" required>
+                </div>
+                <div class="form-group" style="margin-bottom:0">
+                    <label class="form-label">GitLab Project ID</label>
+                    <input class="form-input" type="text" name="gitlab_project_id"
+                           placeholder="например: 12345678" required>
+                    <div class="form-hint">Найти в GitLab: Settings → General → Project ID</div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" onclick="closeAddModal()">Отмена</button>
+                <button type="submit" class="btn btn-primary">Добавить</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+    function openAddModal()  { document.getElementById('add-modal').style.display = 'flex'; }
+    function closeAddModal() { document.getElementById('add-modal').style.display = 'none'; }
+
+    function onProjectAdded(event) {
+      if (event.detail.successful) {
+        closeAddModal();
+        showToast('Проект успешно добавлен', 'success');
+      }
+    }
+</script>
 {% endblock %}

@@ -1,36 +1,52 @@
-<table border="1">
-
-<tr>
-<th>Branch</th>
-<th>Commit</th>
-<th>Protected</th>
-</tr>
-
-{% for branch in branches %}
-
-<tr>
-
-<td>
-
-{% if "TBLT-" in branch.name %}
-
-<span style="color:blue;font-weight:bold;">
-{{ branch.name }}
-</span>
-
-{% else %}
-
-{{ branch.name }}
-
-{% endif %}
-
-</td>
-
-<td>{{ branch.commit_sha[:8] }}</td>
-<td>{{ branch.protected }}</td>
-
-</tr>
-
-{% endfor %}
-
-</table>
+<div class="table-wrapper" id="branches-list">
+    <table>
+        <thead>
+        <tr>
+            <th>Branch</th>
+            <th>Commit</th>
+            <th>Protected</th>
+        </tr>
+        </thead>
+        <tbody>
+        {% for branch in branches %}
+        <tr>
+            <td>
+                {% if "TBLT-" in branch.name %}
+                <span style="color:var(--accent);font-weight:500">
+                    {{ branch.name }}
+                </span>
+                {% else %}
+                {{ branch.name }}
+                {% endif %}
+            </td>
+            <td>
+                <span style="font-family:var(--font-mono);font-size:12px;color:var(--text-secondary)">
+                    {{ branch.commit_sha[:8] }}
+                </span>
+            </td>
+            <td>
+                {% if branch.protected %}
+                <span class="badge badge-success">Yes</span>
+                {% else %}
+                <span class="badge badge-neutral">No</span>
+                {% endif %}
+            </td>
+        </tr>
+        {% else %}
+        <tr>
+            <td colspan="3">
+                <div class="empty-state" style="padding:40px 20px">
+                    <div class="empty-state-icon">
+                        <svg viewBox="0 0 16 16" fill="currentColor">
+                            <path fill-rule="evenodd" d="M11.75 2.5a.75.75 0 1 0 1.5 0 .75.75 0 0 0-1.5 0zm.75 2.75a2.25 2.25 0 1 1-2.25 0v-.5a3.75 3.75 0 1 0 2.25 3.5v-.5a2.25 2.25 0 0 1-2.25-2.5zm-9.75 2a.75.75 0 1 1 0-1.5.75.75 0 0 1 0 1.5zm0 6.5a.75.75 0 1 1 0-1.5.75.75 0 0 1 0 1.5zM1 6.5a1.75 1.75 0 1 0 3.5 0A1.75 1.75 0 0 0 1 6.5zm1.75 7.25a1.75 1.75 0 1 0 0-3.5 1.75 1.75 0 0 0 0 3.5zM2.5 7.25v5a.5.5 0 0 0 .5.5h6.25a.5.5 0 0 0 0-1H3.5V7.25a.5.5 0 0 0-1 0z"/>
+                        </svg>
+                    </div>
+                    <div class="empty-state-title">Ветки не найдены</div>
+                    <div class="empty-state-text">Попробуйте изменить параметры поиска</div>
+                </div>
+            </td>
+        </tr>
+        {% endfor %}
+        </tbody>
+    </table>
+</div>

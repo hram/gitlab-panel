@@ -1,177 +1,160 @@
-<div class="modal-overlay" style="position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); display: flex; align-items: center; justify-content: center; z-index: 1000;">
-    <div class="modal-dialog" style="background: white; padding: 20px; border-radius: 8px; min-width: 400px; box-shadow: 0 4px 6px rgba(0,0,0,0.1);">
-        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
-            <h3 style="margin: 0;">Редактировать релиз {{ release.version }}</h3>
-            <button
-                type="button"
-                onclick="this.closest('.modal-overlay').remove()"
-                style="background: none; border: none; font-size: 24px; cursor: pointer; padding: 0; line-height: 1;"
-            >&times;</button>
+<div class="modal-overlay" style="position:fixed;inset:0;background:rgba(0,0,0,0.7);backdrop-filter:blur(4px);z-index:200;display:flex;align-items:center;justify-content:center;padding:16px"
+     onclick="if(event.target===this)this.remove()">
+    <div class="modal" style="max-width:500px">
+
+        <div class="modal-header">
+            <div class="modal-title">
+                Релиз
+                <span style="font-family:var(--font-mono);color:var(--accent);font-size:15px">
+          {{ release.version }}
+        </span>
+            </div>
+            <button class="modal-close" onclick="this.closest('.modal-overlay').remove()">
+                <svg viewBox="0 0 16 16" fill="currentColor" width="16" height="16">
+                    <path d="M4.646 4.646a.5.5 0 0 1 .708 0L8 7.293l2.646-2.647a.5.5 0 0 1 .708.708L8.707 8l2.647 2.646a.5.5 0 0 1-.708.708L8 8.707l-2.646 2.647a.5.5 0 0 1-.708-.708L7.293 8 4.646 5.354a.5.5 0 0 1 0-.708"/>
+                </svg>
+            </button>
         </div>
 
-        <!-- Скрытые поля для старой стадии -->
         <input type="hidden" id="old-stage" value="{{ release.stage }}">
         <input type="hidden" id="release-version" value="{{ release.version }}">
         <input type="hidden" id="project-id" value="{{ project_id }}">
 
         <form
-            id="release-edit-form"
-            hx-post="/api/releases/{{ release.id }}/update?project_id={{ project_id }}"
-            hx-target="#releases-table"
-            hx-swap="outerHTML"
+                id="release-edit-form"
+                hx-post="/api/releases/{{ release.id }}/update?project_id={{ project_id }}"
+                hx-target="#releases-table-content"
+                hx-swap="outerHTML"
+                hx-on::after-request="onReleaseUpdated(event)"
         >
-            <div style="margin-bottom: 15px;">
-                <label style="display: block; margin-bottom: 5px; font-weight: bold;">Status:</label>
-                <select name="status" required style="width: 100%; padding: 8px; border: 1px solid #ccc; border-radius: 4px;">
-                    <option value="in_progress" {% if release.status == "in_progress" %}selected{% endif %}>В работе</option>
-                    <option value="released" {% if release.status == "released" %}selected{% endif %}>Зарелизен</option>
-                </select>
-            </div>
+            <div class="modal-body">
 
-            <div style="margin-bottom: 15px;">
-                <label style="display: block; margin-bottom: 5px; font-weight: bold;">Stage:</label>
-                <select 
-                    name="stage" 
-                    id="stage-select"
-                    required 
-                    style="width: 100%; padding: 8px; border: 1px solid #ccc; border-radius: 4px;"
-                    onchange="onStageChange()"
-                >
-                    {% for stage in stages %}
-                    <option value="{{ stage.name }}" {% if stage.name == release.stage %}selected{% endif %}>
-                        {{ stage.name }}
-                    </option>
-                    {% endfor %}
-                </select>
-            </div>
-
-            <!-- Диалог подтверждения создания MR -->
-            <div id="mr-confirm-dialog" style="display: none; margin-bottom: 15px; padding: 15px; background: #f5f5f5; border-radius: 4px; border: 1px solid #ddd;">
-                <h4 style="margin: 0 0 10px 0; color: #333;">Создать Merge Request?</h4>
-                <p style="margin: 10px 0; font-size: 14px;">
-                    Влить изменения из ветки <strong id="source-branch-display"></strong> 
-                    в ветку <strong id="target-branch-display"></strong>
-                </p>
-                <div style="margin: 10px 0;">
-                    <label style="display: block; margin-bottom: 5px; font-weight: bold; font-size: 14px;">Jira Task Key:</label>
-                    <input
-                        type="text"
-                        id="jira-key-input"
-                        placeholder="TBLT-5677"
-                        pattern="[A-Z]+-\d+"
-                        style="width: 100%; padding: 8px; border: 1px solid #ccc; border-radius: 4px; box-sizing: border-box;"
-                    >
+                <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+                    <div class="form-group">
+                        <label class="form-label">Статус</label>
+                        <select class="form-input" name="status" required>
+                            <option value="in_progress" {% if release.status == "in_progress" %}selected{% endif %}>В работе</option>
+                            <option value="released"    {% if release.status == "released"    %}selected{% endif %}>Зарелизен</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Стадия</label>
+                        <select class="form-input" name="stage" id="stage-select" required
+                                onchange="onStageChange()">
+                            {% for stage in stages %}
+                            <option value="{{ stage.name }}" {% if stage.name == release.stage %}selected{% endif %}>
+                                {{ stage.name }}
+                            </option>
+                            {% endfor %}
+                        </select>
+                    </div>
                 </div>
-                <div style="margin: 10px 0;">
-                    <label style="display: flex; align-items: center; gap: 8px; font-size: 14px;">
-                        <input type="checkbox" id="create-mr-checkbox" checked>
-                        <span>Создать MR в GitLab</span>
+
+                <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+                    <div class="form-group">
+                        <label class="form-label">Дата начала</label>
+                        <input class="form-input" type="date" name="start_date"
+                               value="{{ release.start_date if release.start_date else '' }}">
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Дата релиза</label>
+                        <input class="form-input" type="date" name="release_date"
+                               value="{{ release.release_date if release.release_date else '' }}">
+                    </div>
+                </div>
+
+                <!-- MR диалог — появляется при смене стадии -->
+                <div id="mr-confirm-dialog" style="display:none;background:var(--bg-elevated);border:1px solid var(--border-accent);border-radius:var(--radius-md);padding:16px">
+                    <div style="font-size:13px;font-weight:500;color:var(--text-primary);margin-bottom:12px;display:flex;align-items:center;gap:8px">
+                        <svg viewBox="0 0 16 16" fill="var(--accent)" width="14" height="14">
+                            <path fill-rule="evenodd" d="M1 11.5a.5.5 0 0 0 .5.5h11.793l-3.147 3.146a.5.5 0 0 0 .708.708l4-4a.5.5 0 0 0 0-.708l-4-4a.5.5 0 0 0-.708.708L13.293 11H1.5a.5.5 0 0 0-.5.5m14-7a.5.5 0 0 1-.5.5H2.707l3.147 3.146a.5.5 0 1 1-.708.708l-4-4a.5.5 0 0 1 0-.708l4-4a.5.5 0 1 1 .708.708L2.707 4H14.5a.5.5 0 0 1 .5.5"/>
+                        </svg>
+                        Создать Merge Request?
+                    </div>
+                    <div style="font-size:12px;color:var(--text-secondary);margin-bottom:12px">
+                        Влить
+                        <span id="source-branch-display" style="font-family:var(--font-mono);color:var(--text-primary)"></span>
+                        →
+                        <span id="target-branch-display" style="font-family:var(--font-mono);color:var(--accent)"></span>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Jira Task Key</label>
+                        <input class="form-input" type="text" id="jira-key-input"
+                               placeholder="TBLT-5677" pattern="[A-Z]+-\d+">
+                    </div>
+                    <label style="display:flex;align-items:center;gap:8px;font-size:13px;color:var(--text-primary);cursor:pointer">
+                        <input type="checkbox" id="create-mr-checkbox" checked
+                               style="accent-color:var(--accent);width:14px;height:14px">
+                        Создать MR в GitLab
                     </label>
                 </div>
+
             </div>
 
-            <div style="margin-bottom: 15px;">
-                <label style="display: block; margin-bottom: 5px; font-weight: bold;">Start Date:</label>
-                <input
-                    type="date"
-                    name="start_date"
-                    value="{{ release.start_date if release.start_date else '' }}"
-                    style="width: 100%; padding: 8px; border: 1px solid #ccc; border-radius: 4px; box-sizing: border-box;"
-                >
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary"
+                        onclick="this.closest('.modal-overlay').remove()">Отмена</button>
+                <button type="button" class="btn btn-primary" id="confirm-mr-btn"
+                        style="display:none" onclick="submitFormWithMr()">Подтвердить</button>
+                <button type="submit" class="btn btn-primary" id="save-btn">Сохранить</button>
             </div>
 
-            <div style="margin-bottom: 15px;">
-                <label style="display: block; margin-bottom: 5px; font-weight: bold;">Release Date:</label>
-                <input
-                    type="date"
-                    name="release_date"
-                    value="{{ release.release_date if release.release_date else '' }}"
-                    style="width: 100%; padding: 8px; border: 1px solid #ccc; border-radius: 4px; box-sizing: border-box;"
-                >
-            </div>
-
-            <div style="display: flex; gap: 10px; justify-content: flex-end;">
-                <button
-                    type="button"
-                    onclick="this.closest('.modal-overlay').remove()"
-                    style="padding: 8px 16px; border: 1px solid #ccc; background: white; border-radius: 4px; cursor: pointer;"
-                >Отмена</button>
-                <button
-                    type="button"
-                    id="confirm-mr-btn"
-                    onclick="submitFormWithMr()"
-                    style="display: none; padding: 8px 16px; border: none; background: #28a745; color: white; border-radius: 4px; cursor: pointer;"
-                >OK</button>
-                <button
-                    type="submit"
-                    id="save-btn"
-                    style="padding: 8px 16px; border: none; background: #007bff; color: white; border-radius: 4px; cursor: pointer;"
-                >Сохранить</button>
-            </div>
         </form>
     </div>
 </div>
 
 <script>
-let stageChanged = false;
-
-function onStageChange() {
-    const oldStage = document.getElementById('old-stage').value;
-    const newStage = document.getElementById('stage-select').value;
-    const version = document.getElementById('release-version').value;
-    const confirmDialog = document.getElementById('mr-confirm-dialog');
-    const confirmBtn = document.getElementById('confirm-mr-btn');
-    const saveBtn = document.getElementById('save-btn');
-
-    if (oldStage !== newStage) {
-        stageChanged = true;
-        document.getElementById('source-branch-display').textContent = oldStage + '/' + version;
-        document.getElementById('target-branch-display').textContent = newStage + '/' + version;
-        confirmDialog.style.display = 'block';
-        confirmBtn.style.display = 'inline-block';
-        saveBtn.style.display = 'none';
-    } else {
-        stageChanged = false;
-        confirmDialog.style.display = 'none';
-        confirmBtn.style.display = 'none';
-        saveBtn.style.display = 'inline-block';
-    }
-}
-
-function submitFormWithMr() {
-    const jiraKey = document.getElementById('jira-key-input').value;
-    const createMr = document.getElementById('create-mr-checkbox').checked;
-    const form = document.getElementById('release-edit-form');
-
-    if (createMr && !jiraKey) {
-        alert('Введите Jira Task Key');
-        return;
-    }
-
-    // Добавляем скрытые поля в форму
-    const mrInput = document.createElement('input');
-    mrInput.type = 'hidden';
-    mrInput.name = 'create_mr';
-    mrInput.value = createMr ? 'true' : 'false';
-    form.appendChild(mrInput);
-
-    const jiraInput = document.createElement('input');
-    jiraInput.type = 'hidden';
-    jiraInput.name = 'jira_key';
-    jiraInput.value = jiraKey;
-    form.appendChild(jiraInput);
-
-    // Отправляем форму через HTMX
-    htmx.trigger(form, 'submit');
-}
-
-// Закрытие модального окна после успешного обновления
-document.addEventListener('htmx:afterRequest', function(evt) {
-    if (evt.detail.successful) {
-        const modal = document.querySelector('.modal-overlay');
-        if (modal) {
-            modal.remove();
+    (function() {
+      window.onReleaseUpdated = function(evt) {
+        if (evt.detail.successful) {
+          const modal = document.querySelector('.modal-overlay');
+          if (modal) modal.remove();
+          showToast('Релиз обновлён', 'success');
         }
-    }
-});
+      };
+
+      function onStageChange() {
+        const oldStage = document.getElementById('old-stage').value;
+        const newStage = document.getElementById('stage-select').value;
+        const version  = document.getElementById('release-version').value;
+        const dialog   = document.getElementById('mr-confirm-dialog');
+        const confirmBtn = document.getElementById('confirm-mr-btn');
+        const saveBtn    = document.getElementById('save-btn');
+
+        if (oldStage !== newStage) {
+          document.getElementById('source-branch-display').textContent = oldStage + '/' + version;
+          document.getElementById('target-branch-display').textContent = newStage + '/' + version;
+          dialog.style.display = 'block';
+          confirmBtn.style.display = 'inline-flex';
+          saveBtn.style.display = 'none';
+        } else {
+          dialog.style.display = 'none';
+          confirmBtn.style.display = 'none';
+          saveBtn.style.display = 'inline-flex';
+        }
+      }
+
+      window.onStageChange = onStageChange;
+
+      window.submitFormWithMr = function() {
+        const jiraKey = document.getElementById('jira-key-input').value;
+        const createMr = document.getElementById('create-mr-checkbox').checked;
+        const form = document.getElementById('release-edit-form');
+
+        if (createMr && !jiraKey) {
+          showToast('Введите Jira Task Key', 'danger');
+          return;
+        }
+
+        const addHidden = (name, value) => {
+          const el = document.createElement('input');
+          el.type = 'hidden'; el.name = name; el.value = value;
+          form.appendChild(el);
+        };
+        addHidden('create_mr', createMr ? 'true' : 'false');
+        addHidden('jira_key', jiraKey);
+
+        htmx.trigger(form, 'submit');
+      };
+    })();
 </script>

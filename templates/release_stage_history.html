@@ -1,49 +1,105 @@
 {% extends "layout.html" %}
 
+{% block title %}История стадий — {{ release.version }} — GitLab Panel{% endblock %}
+
+{% block breadcrumbs %}
+<a href="/">Главная</a>
+<span class="sep">/</span>
+<a href="/projects">Проекты</a>
+<span class="sep">/</span>
+<a href="/projects/{{ project_id }}/releases">{{ project_name }}</a>
+<span class="sep">/</span>
+<span class="current">История стадий</span>
+{% endblock %}
+
 {% block content %}
 
-<div style="margin-bottom: 20px;">
-    <a href="/projects/{{ project_id }}/releases" style="text-decoration: none; color: #007bff;">&larr; Назад к релизам</a>
+<div class="page-header">
+    <div>
+        <div class="page-title">История стадий релиза</div>
+        <div class="page-subtitle">{{ project_name }} — {{ release.version }}</div>
+    </div>
 </div>
 
-<h1>История стадий релиза {{ release.version }}</h1>
+<div class="card" style="margin-bottom:24px">
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:16px">
+        <div>
+            <div style="font-size:12px;color:var(--text-muted);margin-bottom:4px">Проект</div>
+            <div style="font-weight:500;color:var(--text-primary)">{{ project_name }}</div>
+        </div>
+        <div>
+            <div style="font-size:12px;color:var(--text-muted);margin-bottom:4px">Версия</div>
+            <div style="font-family:var(--font-mono);color:var(--accent);font-weight:500">{{ release.version }}</div>
+        </div>
+        <div>
+            <div style="font-size:12px;color:var(--text-muted);margin-bottom:4px">Текущая стадия</div>
+            <span class="badge badge-neutral">{{ release.stage }}</span>
+        </div>
+        <div>
+            <div style="font-size:12px;color:var(--text-muted);margin-bottom:4px">Статус</div>
+            {% if release.status == "released" %}
+            <span class="badge badge-success">Released</span>
+            {% else %}
+            <span class="badge badge-warning">In Progress</span>
+            {% endif %}
+        </div>
+    </div>
+</div>
 
-<p><strong>Проект:</strong> {{ project_name }}</p>
-<p><strong>Версия:</strong> {{ release.version }}</p>
-<p><strong>Текущая стадия:</strong> {{ release.stage }}</p>
-<p><strong>Статус:</strong> {{ release.status }}</p>
-
-<h2>История изменений</h2>
-
-{% if history %}
-<table style="width: 100%; border-collapse: collapse; margin-top: 15px;">
-    <thead>
-        <tr style="background: #f5f5f5;">
-            <th style="border: 1px solid #ddd; padding: 10px; text-align: left;">#</th>
-            <th style="border: 1px solid #ddd; padding: 10px; text-align: left;">Старая стадия</th>
-            <th style="border: 1px solid #ddd; padding: 10px; text-align: left;">Новая стадия</th>
-            <th style="border: 1px solid #ddd; padding: 10px; text-align: left;">Дата изменения</th>
+<div class="table-wrapper">
+    <table>
+        <thead>
+        <tr>
+            <th style="width:60px">#</th>
+            <th>Старая стадия</th>
+            <th>Новая стадия</th>
+            <th>Дата изменения</th>
         </tr>
-    </thead>
-    <tbody>
+        </thead>
+        <tbody>
         {% for h in history %}
         <tr>
-            <td style="border: 1px solid #ddd; padding: 10px;">{{ loop.index }}</td>
-            <td style="border: 1px solid #ddd; padding: 10px;">
+            <td style="text-align:center;color:var(--text-secondary)">{{ loop.index }}</td>
+            <td>
                 {% if h.old_stage %}
-                    {{ h.old_stage }}
+                <span class="badge badge-neutral">{{ h.old_stage }}</span>
                 {% else %}
-                    <em>— (создание)</em>
+                <span style="color:var(--text-muted);font-style:italic">— (создание)</span>
                 {% endif %}
             </td>
-            <td style="border: 1px solid #ddd; padding: 10px;">{{ h.new_stage }}</td>
-            <td style="border: 1px solid #ddd; padding: 10px;">{{ h.changed_at.strftime('%d.%m.%Y %H:%M:%S') }}</td>
+            <td>
+                <span class="badge badge-primary">{{ h.new_stage }}</span>
+            </td>
+            <td style="color:var(--text-secondary);font-size:13px">
+                {{ h.changed_at.strftime('%d.%m.%Y %H:%M:%S') }}
+            </td>
+        </tr>
+        {% else %}
+        <tr>
+            <td colspan="4">
+                <div class="empty-state" style="padding:40px 20px">
+                    <div class="empty-state-icon">
+                        <svg viewBox="0 0 16 16" fill="currentColor">
+                            <path d="M8 16A8 8 0 1 0 8 0a8 8 0 0 0 0 16zm.93-9.412-1 4.705c-.07.34.029.533.304.533.194 0 .487-.07.686-.246l-.088.416c-.287.346-.92.598-1.465.598-.703 0-1.002-.422-.808-1.319l.738-3.468c.064-.293.006-.399-.287-.47l-.451-.081.082-.381 2.29-.287zM8 5.5a1 1 0 1 1 0-2 1 1 0 0 1 0 2z"/>
+                        </svg>
+                    </div>
+                    <div class="empty-state-title">История изменений пуста</div>
+                    <div class="empty-state-text">Изменения стадий будут отображаться здесь</div>
+                </div>
+            </td>
         </tr>
         {% endfor %}
-    </tbody>
-</table>
-{% else %}
-<p style="color: #666; margin-top: 15px;">История изменений пока пуста.</p>
-{% endif %}
+        </tbody>
+    </table>
+</div>
+
+<div style="margin-top:24px">
+    <a href="/projects/{{ project_id }}/releases" class="btn btn-secondary">
+        <svg viewBox="0 0 16 16" fill="currentColor" width="14" height="14" style="margin-right:6px">
+            <path fill-rule="evenodd" d="M11.354 1.646a.5.5 0 0 1 0 .708L5.707 8l5.647 5.646a.5.5 0 0 1-.708.708l-6-6a.5.5 0 0 1 0-.708l6-6a.5.5 0 0 1 .708 0z"/>
+        </svg>
+        Назад к релизам
+    </a>
+</div>
 
 {% endblock %}

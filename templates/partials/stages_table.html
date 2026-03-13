@@ -1,34 +1,72 @@
 {% if error %}
-<div style="color: red; margin-bottom: 10px;">{{ error }}</div>
+<div class="toast toast-danger" style="position:static;margin-bottom:16px;max-width:100%">
+    <svg viewBox="0 0 16 16" fill="var(--status-danger)" width="16" height="16" style="flex-shrink:0">
+        <path d="M8.982 1.566a1.13 1.13 0 0 0-1.96 0L.165 13.233c-.457.778.091 1.767.98 1.767h13.713c.889 0 1.438-.99.98-1.767L8.982 1.566zM8 5c.535 0 .954.462.9.995l-.35 3.507a.552.552 0 0 1-1.1 0L7.1 5.995A.905.905 0 0 1 8 5zm.002 6a1 1 0 1 1 0 2 1 1 0 0 1 0-2z"/>
+    </svg>
+    {{ error }}
+</div>
 {% endif %}
 
-<table border="1" style="width: 100%; border-collapse: collapse;">
-<thead>
-<tr>
-    <th>Порядок</th>
-    <th>Имя стадии</th>
-    <th>Действия</th>
-</tr>
-</thead>
-<tbody>
-{% for stage in stages %}
-<tr>
-    <td style="text-align: center;">{{ stage.order }}</td>
-    <td>{{ stage.name }}</td>
-    <td style="text-align: center;">
-        <form style="display:inline;">
-            <button
-                type="submit"
-                hx-post="/api/projects/{{ stage.project_id }}/stages/{{ stage.id }}/delete"
-                hx-target="#stages-table"
-                hx-swap="innerHTML"
-                hx-confirm="Удалить стадию '{{ stage.name }}'?"
-            >
-                Удалить
-            </button>
-        </form>
-    </td>
-</tr>
-{% endfor %}
-</tbody>
-</table>
+<div id="stages-table-content">
+{% if stages %}
+
+<div class="table-wrapper" id="stages-table">
+    <table>
+        <thead>
+        <tr>
+            <th>Порядок</th>
+            <th>Имя стадии</th>
+            <th></th>
+        </tr>
+        </thead>
+        <tbody>
+        {% for stage in stages %}
+        <tr>
+            <td style="text-align:center">
+                <span class="badge badge-neutral">{{ stage.order }}</span>
+            </td>
+            <td>{{ stage.name }}</td>
+            <td>
+                <button
+                    class="btn btn-ghost btn-icon btn-sm"
+                    style="color:var(--status-danger)"
+                    title="Удалить стадию"
+                    hx-post="/api/projects/{{ stage.project_id }}/stages/{{ stage.id }}/delete"
+                    hx-target="#stages-table-content"
+                    hx-swap="outerHTML"
+                    hx-confirm="Удалить стадию '{{ stage.name }}'?"
+                >
+                    <svg viewBox="0 0 16 16" fill="currentColor" width="13" height="13">
+                        <path d="M5.5 5.5A.5.5 0 0 1 6 6v6a.5.5 0 0 1-1 0V6a.5.5 0 0 1 .5-.5m2.5 0a.5.5 0 0 1 .5.5v6a.5.5 0 0 1-1 0V6a.5.5 0 0 1 .5-.5m3 .5a.5.5 0 0 0-1 0v6a.5.5 0 0 0 1 0z"/>
+                        <path d="M14.5 3a1 1 0 0 1-1 1H13v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V4h-.5a1 1 0 0 1-1-1V2a1 1 0 0 1 1-1H6a1 1 0 0 1 1-1h2a1 1 0 0 1 1 1h3.5a1 1 0 0 1 1 1zM4.118 4 4 4.059V13a1 1 0 0 0 1 1h6a1 1 0 0 0 1-1V4.059L11.882 4zM2.5 3h11V2h-11z"/>
+                    </svg>
+                </button>
+            </td>
+        </tr>
+        {% endfor %}
+        </tbody>
+    </table>
+</div>
+
+{% else %}
+
+<div class="card" id="stages-table">
+    <div class="empty-state">
+        <div class="empty-state-icon">
+            <svg viewBox="0 0 16 16" fill="currentColor">
+                <path d="M0 2a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v2h2a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2v-2H2a2 2 0 0 1-2-2zm2-1a1 1 0 0 0-1 1v8a1 1 0 0 0 1 1h8a1 1 0 0 0 1-1V2a1 1 0 0 0-1-1z"/>
+            </svg>
+        </div>
+        <div class="empty-state-title">Стадий пока нет</div>
+        <div class="empty-state-text">Добавьте первую стадию для этого проекта</div>
+        <button class="btn btn-primary" onclick="openAddModal()">
+            <svg viewBox="0 0 16 16" fill="currentColor">
+                <path d="M8 2a.5.5 0 0 1 .5.5v5h5a.5.5 0 0 1 0 1h-5v5a.5.5 0 0 1-1 0v-5h-5a.5.5 0 0 1 0-1h5v-5A.5.5 0 0 1 8 2"/>
+            </svg>
+            Добавить стадию
+        </button>
+    </div>
+</div>
+</div>
+
+{% endif %}

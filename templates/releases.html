@@ -1,77 +1,181 @@
 {% extends "layout.html" %}
 
+{% block title %}Релизы — {{ project_name }} — GitLab Panel{% endblock %}
+
+{% block breadcrumbs %}
+<a href="/">Главная</a>
+<span class="sep">/</span>
+<a href="/projects">Проекты</a>
+<span class="sep">/</span>
+<span class="current">{{ project_name }}</span>
+{% endblock %}
+
+{% block topbar_actions %}
+<button class="btn btn-primary" onclick="openAddModal()">
+    <svg viewBox="0 0 16 16" fill="currentColor">
+        <path d="M8 2a.5.5 0 0 1 .5.5v5h5a.5.5 0 0 1 0 1h-5v5a.5.5 0 0 1-1 0v-5h-5a.5.5 0 0 1 0-1h5v-5A.5.5 0 0 1 8 2"/>
+    </svg>
+    Добавить релиз
+</button>
+{% endblock %}
+
 {% block content %}
 
-<h1>Релизы проекта {{ project_name }}</h1>
-
-<h2>Добавить релиз</h2>
-
-<form
-    hx-post="/api/projects/{{ project_id }}/releases/create"
-    hx-target="#releases-table"
-    hx-swap="outerHTML"
->
-
-<input
-    type="text"
-    name="version"
-    placeholder="Версия (X.Y.Z)"
-    required
-    pattern="\d+\.\d+\.\d+"
->
-
-<select name="status" required>
-    <option value="in_progress">В работе</option>
-    <option value="released">Зарелизен</option>
-</select>
-
-<select name="stage" required>
-    {% for stage in stages %}
-    <option value="{{ stage.name }}">{{ stage.name }}</option>
-    {% endfor %}
-</select>
-
-<input
-    type="date"
-    name="start_date"
-    placeholder="Дата начала"
->
-
-<input
-    type="date"
-    name="release_date"
-    placeholder="Дата релиза"
->
-
-<div style="margin: 10px 0;">
-    <input type="hidden" name="source_branch" value="{{ source_branch }}">
-    <label style="display: flex; align-items: center; gap: 8px; cursor: pointer;">
-        <input type="checkbox" name="create_branches" value="true">
-        <span>Создать ветки ({{ stages|length }} шт.)</span>
-    </label>
-    <small style="color: #666;">
-        Будут созданы ветки: {% for stage in stages %}{{ stage.name }}/&lt;version&gt;{% if not loop.last %}, {% endif %}{% endfor %}
-    </small>
-    <br>
-    <small style="color: #666;">
-        От ветки: <strong>{{ source_branch }}</strong>
-    </small>
+<div class="page-header">
+    <div>
+        <div class="page-title">{{ project_name }}</div>
+        <div class="page-subtitle">Управление релизами проекта</div>
+    </div>
 </div>
 
-<button type="submit">
-Добавить релиз
-</button>
-
-</form>
-
+<!-- Таблица релизов — HTMX подгружает при загрузке и обновляет -->
 <div
-    id="releases-table"
-    hx-get="/api/projects/{{ project_id }}/releases"
-    hx-trigger="load"
+        id="releases-table"
+        hx-get="/api/projects/{{ project_id }}/releases"
+        hx-trigger="load"
+        hx-target="#releases-table-content"
+        hx-swap="innerHTML"
 >
-    loading...
+    <!-- skeleton пока грузится -->
+    <div id="releases-table-content">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px">
+            <div style="font-size:13px;color:var(--text-secondary)">
+                Всего релизов: <strong style="color:var(--text-primary)">—</strong>
+            </div>
+            <a href="/api/projects/{{ project_id }}/releases/check-commits"
+               class="btn btn-secondary btn-sm">
+                <svg viewBox="0 0 16 16" fill="currentColor" width="12" height="12">
+                    <path d="M11.742 10.344a6.5 6.5 0 1 0-1.397 1.398h-.001q.044.06.098.115l3.85 3.85a1 1 0 0 0 1.415-1.414l-3.85-3.85a1 1 0 0 0-.115-.099zM12 6.5a5.5 5.5 0 1 1-11 0 5.5 5.5 0 0 1 11 0"/>
+                </svg>
+                Проверить коммиты
+            </a>
+        </div>
+        <div class="table-wrapper">
+            <table>
+                <thead>
+                <tr>
+                    <th>Версия</th><th>Статус</th><th>Стадия</th>
+                    <th>Начало</th><th>Релиз</th><th></th>
+                </tr>
+                </thead>
+                <tbody>
+                {% for i in range(3) %}
+                <tr>
+                    <td><div class="skeleton" style="height:14px;width:60px"></div></td>
+                    <td><div class="skeleton" style="height:20px;width:80px;border-radius:10px"></div></td>
+                    <td><div class="skeleton" style="height:14px;width:70px"></div></td>
+                    <td><div class="skeleton" style="height:14px;width:80px"></div></td>
+                    <td><div class="skeleton" style="height:14px;width:80px"></div></td>
+                    <td><div class="skeleton" style="height:28px;width:80px"></div></td>
+                </tr>
+                {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
 </div>
 
+<!-- Контейнер для модалки редактирования (HTMX вставляет сюда) -->
 <div id="release-edit-modal"></div>
 
+<!-- ===== МОДАЛКА ДОБАВЛЕНИЯ РЕЛИЗА ===== -->
+<div class="modal-overlay" id="add-modal" style="display:none"
+     onclick="if(event.target===this)closeAddModal()">
+    <div class="modal" style="max-width:520px">
+
+        <div class="modal-header">
+            <div class="modal-title">Добавить релиз</div>
+            <button class="modal-close" onclick="closeAddModal()">
+                <svg viewBox="0 0 16 16" fill="currentColor" width="16" height="16">
+                    <path d="M4.646 4.646a.5.5 0 0 1 .708 0L8 7.293l2.646-2.647a.5.5 0 0 1 .708.708L8.707 8l2.647 2.646a.5.5 0 0 1-.708.708L8 8.707l-2.646 2.647a.5.5 0 0 1-.708-.708L7.293 8 4.646 5.354a.5.5 0 0 1 0-.708"/>
+                </svg>
+            </button>
+        </div>
+
+        <form
+                hx-post="/api/projects/{{ project_id }}/releases/create"
+                hx-target="#releases-table-content"
+                hx-swap="outerHTML"
+                hx-on::after-request="onReleaseAdded(event)"
+        >
+            <div class="modal-body">
+
+                <div class="form-group">
+                    <label class="form-label">Версия</label>
+                    <input class="form-input" type="text" name="version"
+                           placeholder="X.Y.Z" required pattern="\d+\.\d+\.\d+">
+                    <div class="form-hint">Формат: 1.2.3</div>
+                </div>
+
+                <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+                    <div class="form-group">
+                        <label class="form-label">Статус</label>
+                        <select class="form-input" name="status" required>
+                            <option value="in_progress">В работе</option>
+                            <option value="released">Зарелизен</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Стадия</label>
+                        <select class="form-input" name="stage" required>
+                            {% for stage in stages %}
+                            <option value="{{ stage.name }}">{{ stage.name }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                </div>
+
+                <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+                    <div class="form-group">
+                        <label class="form-label">Дата начала</label>
+                        <input class="form-input" type="date" name="start_date">
+                    </div>
+                    <div class="form-group" style="margin-bottom:0">
+                        <label class="form-label">Дата релиза</label>
+                        <input class="form-input" type="date" name="release_date">
+                    </div>
+                </div>
+
+                <input type="hidden" name="source_branch" value="{{ source_branch }}">
+
+                <div style="background:var(--bg-elevated);border-radius:var(--radius-md);padding:12px;border:1px solid var(--border)">
+                    <label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-size:13px;color:var(--text-primary)">
+                        <input type="checkbox" name="create_branches" value="true"
+                               style="accent-color:var(--accent);width:14px;height:14px">
+                        Создать ветки ({{ stages|length }} шт.)
+                    </label>
+                    <div style="margin-top:8px;font-size:11px;color:var(--text-muted);line-height:1.6">
+                        Будут созданы:
+                        <span style="font-family:var(--font-mono);color:var(--text-secondary)">
+              {% for stage in stages %}{{ stage.name }}/&lt;version&gt;{% if not loop.last %}, {% endif %}{% endfor %}
+            </span>
+                        <br>от ветки: <span style="font-family:var(--font-mono);color:var(--accent)">{{ source_branch }}</span>
+                    </div>
+                </div>
+
+            </div>
+
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" onclick="closeAddModal()">Отмена</button>
+                <button type="submit" class="btn btn-primary">Добавить</button>
+            </div>
+        </form>
+
+    </div>
+</div>
+
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+    function openAddModal()  { document.getElementById('add-modal').style.display = 'flex'; }
+    function closeAddModal() { document.getElementById('add-modal').style.display = 'none'; }
+
+    function onReleaseAdded(event) {
+      if (event.detail.successful) {
+        closeAddModal();
+        showToast('Релиз успешно добавлен', 'success');
+      }
+    }
+</script>
 {% endblock %}

@@ -1,11 +1,50 @@
 {% extends "layout.html" %}
 
+{% block title %}Главная — GitLab Panel{% endblock %}
+
+{% block breadcrumbs %}
+<a href="/">Главная</a>
+{% endblock %}
+
 {% block content %}
 
-<h2>Главная</h2>
+<div class="page-header">
+    <div>
+        <div class="page-title">GitLab Panel</div>
+        <div class="page-subtitle">Панель управления проектами и релизами</div>
+    </div>
+</div>
 
-<a href="/projects">Проекты</a>
-<br>
-<a href="/branches">Ветки</a>
+<div class="card-grid">
+    <a href="/projects" class="card card-link">
+        <div class="card-icon">
+            <svg viewBox="0 0 16 16" fill="currentColor">
+                <path d="M1 2.5A1.5 1.5 0 0 1 2.5 1h3A1.5 1.5 0 0 1 7 2.5v3A1.5 1.5 0 0 1 5.5 7h-3A1.5 1.5 0 0 1 1 5.5zm8 0A1.5 1.5 0 0 1 10.5 1h3A1.5 1.5 0 0 1 15 2.5v3A1.5 1.5 0 0 1 13.5 7h-3A1.5 1.5 0 0 1 9 5.5zm-8 8A1.5 1.5 0 0 1 2.5 9h3A1.5 1.5 0 0 1 7 10.5v3A1.5 1.5 0 0 1 5.5 15h-3A1.5 1.5 0 0 1 1 13.5zm8 0A1.5 1.5 0 0 1 10.5 9h3A1.5 1.5 0 0 1 15 10.5v3A1.5 1.5 0 0 1 13.5 15h-3A1.5 1.5 0 0 1 9 13.5z"/>
+            </svg>
+        </div>
+        <div class="card-title">Проекты</div>
+        <div class="card-text">Управление подключёнными GitLab-проектами</div>
+    </a>
+
+    <a href="/branches" class="card card-link">
+        <div class="card-icon">
+            <svg viewBox="0 0 16 16" fill="currentColor">
+                <path fill-rule="evenodd" d="M11.75 2.5a.75.75 0 1 0 1.5 0 .75.75 0 0 0-1.5 0zm.75 2.75a2.25 2.25 0 1 1-2.25 0v-.5a3.75 3.75 0 1 0 2.25 3.5v-.5a2.25 2.25 0 0 1-2.25-2.5zm-9.75 2a.75.75 0 1 1 0-1.5.75.75 0 0 1 0 1.5zm0 6.5a.75.75 0 1 1 0-1.5.75.75 0 0 1 0 1.5zM1 6.5a1.75 1.75 0 1 0 3.5 0A1.75 1.75 0 0 0 1 6.5zm1.75 7.25a1.75 1.75 0 1 0 0-3.5 1.75 1.75 0 0 0 0 3.5zM2.5 7.25v5a.5.5 0 0 0 .5.5h6.25a.5.5 0 0 0 0-1H3.5V7.25a.5.5 0 0 0-1 0z"/>
+            </svg>
+        </div>
+        <div class="card-title">Ветки</div>
+        <div class="card-text">Просмотр и поиск веток по всем проектам</div>
+    </a>
+
+    <a href="/releases" class="card card-link">
+        <div class="card-icon">
+            <svg viewBox="0 0 16 16" fill="currentColor">
+                <path fill-rule="evenodd" d="M1 1.5a.5.5 0 0 1 .5-.5h4.081a.5.5 0 0 1 .353.146l8.5 8.5a.5.5 0 0 1 0 .708l-4.082 4.082a.5.5 0 0 1-.707 0l-8.5-8.5A.5.5 0 0 1 1 5.581V1.5zM2 2v3.37l8.121 8.121 3.375-3.375L5.37 2H2zM4 4a1 1 0 1 1-2 0 1 1 0 0 1 2 0z"/>
+            </svg>
+        </div>
+        <div class="card-title">Релизы</div>
+        <div class="card-text">Все релизы по всем проектам</div>
+    </a>
+</div>
 
 {% endblock %}

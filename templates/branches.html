@@ -1,94 +1,107 @@
 {% extends "layout.html" %}
 
+{% block title %}Ветки — GitLab Panel{% endblock %}
+
+{% block breadcrumbs %}
+<a href="/">Главная</a>
+<span class="sep">/</span>
+<span class="current">Ветки</span>
+{% endblock %}
+
 {% block content %}
 
-<h2>Ветки</h2>
-
-<div style="display:flex; gap:10px; align-items:center">
-
-<select id="branch-template">
-
-<option value="">Шаблоны</option>
-<option value="develop">develop</option>
-<option value="alpha">alpha</option>
-<option value="stage">stage</option>
-<option value="prod">prod</option>
-<option value="feature">feature</option>
-
-</select>
-
-<div style="position:relative">
-
-<input
-    id="search-input"
-    type="text"
-    name="search"
-    placeholder="Поиск ветки..."
-    hx-get="/api/branches"
-    hx-trigger="keyup changed delay:300ms"
-    hx-target="#branch-table"
-/>
-
-<span
-    id="clear-search"
-    style="
-        position:absolute;
-        right:8px;
-        top:4px;
-        cursor:pointer;
-        font-weight:bold;
-        display:none;
-    "
->
-✕
-</span>
-
+<div class="page-header">
+    <div>
+        <div class="page-title">Ветки</div>
+        <div class="page-subtitle">Поиск и просмотр веток по всем проектам</div>
+    </div>
 </div>
 
-</div>
+<div class="filters-row">
+    <select id="branch-template" class="form-input" style="width:auto;min-width:150px">
+        <option value="">Шаблоны</option>
+        <option value="develop">develop</option>
+        <option value="alpha">alpha</option>
+        <option value="stage">stage</option>
+        <option value="prod">prod</option>
+        <option value="feature">feature</option>
+    </select>
 
-<br>
+    <div class="search-box">
+        <input
+            id="search-input"
+            type="text"
+            name="search"
+            placeholder="Поиск ветки..."
+            hx-get="/api/branches"
+            hx-trigger="keyup changed delay:300ms"
+            hx-target="#branches-list"
+            class="form-input"
+            style="padding-right:32px"
+        />
+        <span
+            id="clear-search"
+            class="clear-btn"
+            style="display:none"
+        >
+            <svg viewBox="0 0 16 16" fill="currentColor" width="14" height="14">
+                <path d="M4.646 4.646a.5.5 0 0 1 .708 0L8 7.293l2.646-2.647a.5.5 0 0 1 .708.708L8.707 8l2.647 2.646a.5.5 0 0 1-.708.708L8 8.707l-2.646 2.647a.5.5 0 0 1-.708-.708L7.293 8 4.646 5.354a.5.5 0 0 1 0-.708"/>
+            </svg>
+        </span>
+    </div>
+</div>
 
 <div
-    id="branch-table"
+    id="branches-list"
     hx-get="/api/branches"
     hx-trigger="load"
 >
-    loading...
+    <div class="table-wrapper">
+        <table>
+            <thead>
+            <tr>
+                <th>Branch</th>
+                <th>Commit</th>
+                <th>Protected</th>
+            </tr>
+            </thead>
+            <tbody>
+            {% for i in range(5) %}
+            <tr>
+                <td><div class="skeleton" style="height:14px;width:200px"></div></td>
+                <td><div class="skeleton" style="height:14px;width:80px"></div></td>
+                <td><div class="skeleton" style="height:20px;width:60px;border-radius:10px"></div></td>
+            </tr>
+            {% endfor %}
+            </tbody>
+        </table>
+    </div>
 </div>
 
+{% endblock %}
+
+{% block extra_scripts %}
 <script>
+    const templateSelect = document.getElementById("branch-template");
+    const searchInput = document.getElementById("search-input");
+    const clearBtn = document.getElementById("clear-search");
 
-const templateSelect = document.getElementById("branch-template")
-const searchInput = document.getElementById("search-input")
-const clearBtn = document.getElementById("clear-search")
+    function updateClearButton() {
+        clearBtn.style.display = searchInput.value ? "flex" : "none";
+    }
 
-function updateClearButton() {
-    clearBtn.style.display = searchInput.value ? "block" : "none"
-}
+    searchInput.addEventListener("input", updateClearButton);
 
-searchInput.addEventListener("input", updateClearButton)
+    templateSelect.addEventListener("change", () => {
+        searchInput.value = templateSelect.value;
+        updateClearButton();
+        searchInput.dispatchEvent(new Event("keyup"));
+    });
 
-templateSelect.addEventListener("change", () => {
-
-    searchInput.value = templateSelect.value
-
-    updateClearButton()
-
-    searchInput.dispatchEvent(new Event("keyup"))
-
-})
-
-clearBtn.addEventListener("click", () => {
-
-    searchInput.value = ""
-
-    updateClearButton()
-
-    searchInput.dispatchEvent(new Event("keyup"))
-
-})
-
+    clearBtn.addEventListener("click", () => {
+        searchInput.value = "";
+        updateClearButton();
+        searchInput.dispatchEvent(new Event("keyup"));
+    });
 </script>
-
 {% endblock %}
