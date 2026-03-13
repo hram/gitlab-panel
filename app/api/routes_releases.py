@@ -1,11 +1,13 @@
 from fastapi import APIRouter, Request, Form
 from fastapi.templating import Jinja2Templates
+from fastapi.responses import JSONResponse
 
 from app.application.release_service import ReleaseService
 from app.application.project_service import ProjectService
 from app.application.stage_service import StageService
 from app.application.branch_service import BranchService
 from app.application.commit_check_service import CommitCheckService
+from app.application.jira_progress_service import JiraProgressService
 from app.infrastructure.config import JIRA_URL
 
 
@@ -18,6 +20,7 @@ project_service = ProjectService()
 stage_service = StageService()
 branch_service = BranchService()
 commit_check_service = CommitCheckService()
+jira_progress_service = JiraProgressService()
 
 
 @router.get("/api/projects/{project_id}/releases")
@@ -252,6 +255,55 @@ def release_stage_history(
             "project_name": project.name if project else str(project_id),
         },
     )
+
+
+@router.post("/api/releases/{release_id}/calculate-progress")
+def calculate_release_progress(
+    request: Request,
+    release_id: int,
+):
+    """
+    Вычисляет прогресс выполнения релиза на основе задач в Jira.
+    Результат сохраняется в базу данных.
+    """
+    release = release_service.get_release_by_id(release_id)
+    
+    if not release:
+        return JSONResponse(
+            status_code=404,
+            content={"error": "Релиз не найден"}
+        )
+    
+    if not release.jira_fix_version:
+        return JSONResponse(
+            status_code=400,
+            content={"error": "Jira Fix Version не указан для этого релиза"}
+        )
+    
+    # Получаем проект для определения project_key
+    project = project_service.get_project_by_gitlab_id(release.project_id)
+    project_key = "TBLT"  # По умолчанию
+    
+    # Вычисляем прогресс
+    result = jira_progress_service.calculate_release_progress(
+        fix_version=release.jira_fix_version,
+        project_key=project_key
+    )
+    
+    if result["error"]:
+        return JSONResponse(
+            status_code=500,
+            content={"error": result["error"]}
+        )
+    
+    # Сохраняем прогресс в БД
+    release_service.update_progress(release_id, result["progress"])
+    
+    return JSONResponse(content={
+        "progress": result["progress"],
+        "total_issues": result["total_issues"],
+        "processed_issues": result["processed_issues"],
+    })
 
 
 @router.get("/api/projects/{project_id}/releases/check-commits")

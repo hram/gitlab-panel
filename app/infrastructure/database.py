@@ -33,6 +33,7 @@ def init_db():
             start_date TEXT,
             release_date TEXT,
             jira_fix_version TEXT,
+            progress REAL DEFAULT 0,
             FOREIGN KEY (project_id) REFERENCES projects(id) ON DELETE CASCADE
         )
         """
@@ -43,6 +44,17 @@ def init_db():
         conn.execute(
             """
             ALTER TABLE releases ADD COLUMN jira_fix_version TEXT
+            """
+        )
+    except sqlite3.OperationalError:
+        # Колонка уже существует
+        pass
+
+    # Добавляем колонку progress если её нет (для существующих БД)
+    try:
+        conn.execute(
+            """
+            ALTER TABLE releases ADD COLUMN progress REAL DEFAULT 0
             """
         )
     except sqlite3.OperationalError:

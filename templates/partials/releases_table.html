@@ -61,6 +61,7 @@
         <tr>
             <th>Версия</th>
             <th>Jira</th>
+            <th>Прогресс</th>
             <th>Статус</th>
             <th>Стадия</th>
             <th>Начало</th>
@@ -96,6 +97,15 @@
             </td>
 
             <td>
+                <div style="display:flex;align-items:center;gap:8px">
+                    <div style="flex:1;height:8px;background:var(--bg-elevated);border-radius:4px;overflow:hidden;min-width:80px">
+                        <div style="width:{{ r.progress }}%;height:100%;background:linear-gradient(90deg, var(--accent) 0%, var(--status-success) 100%);border-radius:4px;transition:width 0.3s ease"></div>
+                    </div>
+                    <span style="font-size:12px;color:var(--text-secondary);min-width:35px;text-align:right">{{ "%.0f"|format(r.progress) }}%</span>
+                </div>
+            </td>
+
+            <td>
                 {% if r.status == "released" %}
                 <span class="badge badge-success">Released</span>
                 {% else %}
@@ -117,6 +127,18 @@
 
             <td>
                 <div style="display:flex;align-items:center;gap:4px">
+
+                    <button
+                            class="btn btn-ghost btn-sm"
+                            onclick="calculateProgress({{ r.id }}, '{{ r.jira_fix_version or '' }}')"
+                            title="Расчитать прогресс"
+                            id="calc-progress-btn-{{ r.id }}"
+                    >
+                        <svg viewBox="0 0 16 16" fill="currentColor" width="12" height="12">
+                            <path d="M4.646 4.646a.5.5 0 0 1 .708 0L8 7.293l2.646-2.647a.5.5 0 0 1 .708.708L8.707 8l2.647 2.646a.5.5 0 0 1-.708.708L8 8.707l-2.646 2.647a.5.5 0 0 1-.708-.708L7.293 8 4.646 5.354a.5.5 0 0 1 0-.708"/>
+                        </svg>
+                        Прогресс
+                    </button>
 
                     <button
                             class="btn btn-ghost btn-sm"
@@ -186,3 +208,56 @@
 </div>
 
 {% endif %}
+
+<script>
+    async function calculateProgress(releaseId, jiraFixVersion) {
+        const btn = document.getElementById(`calc-progress-btn-${releaseId}`);
+        const originalContent = btn.innerHTML;
+        
+        if (!jiraFixVersion) {
+            showToast('Jira Fix Version не указан для этого релиза', 'danger');
+            return;
+        }
+        
+        // Показываем индикатор загрузки
+        btn.disabled = true;
+        btn.innerHTML = `
+            <svg viewBox="0 0 16 16" fill="currentColor" width="12" height="12" style="animation:spin 1s linear infinite">
+                <path d="M8 3a5 5 0 1 0 5 5 5 5 0 0 0-5-5zm0 9a4 4 0 1 1 4-4 4 4 0 0 1-4 4"/>
+            </svg>
+            <span>Считаем...</span>
+        `;
+        
+        try {
+            const response = await fetch(`/api/releases/${releaseId}/calculate-progress`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                }
+            });
+            
+            const data = await response.json();
+            
+            if (response.ok) {
+                showToast(`Прогресс обновлён: ${data.progress}% (${data.processed_issues} задач)`, 'success');
+                // Обновляем таблицу - перезагружаем страницу для обновления прогресса
+                setTimeout(() => location.reload(), 1000);
+            } else {
+                showToast(`Ошибка: ${data.error}`, 'danger');
+                btn.disabled = false;
+                btn.innerHTML = originalContent;
+            }
+        } catch (error) {
+            showToast(`Ошибка при расчёте прогресса: ${error.message}`, 'danger');
+            btn.disabled = false;
+            btn.innerHTML = originalContent;
+        }
+    }
+</script>
+
+<style>
+    @keyframes spin {
+        from { transform: rotate(0deg); }
+        to { transform: rotate(360deg); }
+    }
+</style>

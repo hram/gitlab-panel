@@ -78,6 +78,10 @@ class ReleaseService:
     def get_release_by_id(self, release_id: int) -> Release | None:
         return self.repo.get_release_by_id(release_id)
 
+    def update_progress(self, release_id: int, progress: float):
+        """Обновляет прогресс выполнения релиза."""
+        self.repo.update_progress(release_id, progress)
+
     def _is_valid_semver(self, version: str) -> bool:
         pattern = r"^\d+\.\d+\.\d+$"
         return bool(re.match(pattern, version))

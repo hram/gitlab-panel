@@ -27,6 +27,7 @@ class SQLiteReleaseRepository:
                 start_date=row["start_date"] if row["start_date"] else None,
                 release_date=row["release_date"] if row["release_date"] else None,
                 jira_fix_version=row["jira_fix_version"] if row["jira_fix_version"] else None,
+                progress=row["progress"] if row["progress"] else 0.0,
             )
             for row in rows
         ]
@@ -184,4 +185,17 @@ class SQLiteReleaseRepository:
             start_date=row["start_date"] if row["start_date"] else None,
             release_date=row["release_date"] if row["release_date"] else None,
             jira_fix_version=row["jira_fix_version"] if row["jira_fix_version"] else None,
+            progress=row["progress"] if row["progress"] else 0.0,
         )
+
+    def update_progress(self, release_id: int, progress: float):
+        """Обновляет прогресс выполнения релиза."""
+        conn = get_connection()
+
+        conn.execute(
+            "UPDATE releases SET progress=? WHERE id=?",
+            (progress, release_id),
+        )
+
+        conn.commit()
+        conn.close()

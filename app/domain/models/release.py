@@ -12,3 +12,4 @@ class Release:
     start_date: date | None
     release_date: date | None
     jira_fix_version: str | None = None
+    progress: float = 0.0
