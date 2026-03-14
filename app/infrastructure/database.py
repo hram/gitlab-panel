@@ -119,6 +119,14 @@ def init_db():
         """
     )
 
+    # Добавляем колонку sort_order в release_bundles если её нет
+    try:
+        conn.execute("ALTER TABLE release_bundles ADD COLUMN sort_order INTEGER")
+        # Инициализируем sort_order по порядку создания (id)
+        conn.execute("UPDATE release_bundles SET sort_order = id WHERE sort_order IS NULL")
+    except sqlite3.OperationalError:
+        pass  # колонка уже существует
+
     # Миграция: конвертируем project_id в release_bundle_items из gitlab_project_id → projects.id.
     # Актуально для записей, созданных до исправления бага (хранился gitlab_project_id вместо id).
     conn.execute(

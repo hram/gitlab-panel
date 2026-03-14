@@ -11,13 +11,13 @@ class SQLiteReleaseRepository:
         conn = get_connection()
 
         rows = conn.execute(
-            "SELECT * FROM releases WHERE project_id = ? ORDER BY version DESC",
+            "SELECT * FROM releases WHERE project_id = ?",
             (project_id,),
         ).fetchall()
 
         conn.close()
 
-        return [
+        releases = [
             Release(
                 id=row["id"],
                 project_id=row["project_id"],
@@ -31,6 +31,14 @@ class SQLiteReleaseRepository:
             )
             for row in rows
         ]
+
+        def semver_key(r):
+            try:
+                return tuple(int(x) for x in r.version.split("."))
+            except (ValueError, AttributeError):
+                return (0, 0, 0)
+
+        return sorted(releases, key=semver_key, reverse=True)
 
     def create_release(self, release: Release):
 

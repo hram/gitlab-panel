@@ -83,6 +83,9 @@ class ReleaseBundleService:
         item.role = role
         self.item_repo.update_item(item)
 
+    def reorder_bundles(self, ids: list[int]) -> None:
+        self.bundle_repo.reorder_bundles(ids)
+
     def remove_item(self, item_id: int) -> None:
         self.item_repo.delete_item(item_id)
 

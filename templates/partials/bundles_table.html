@@ -6,7 +6,7 @@
     {% if bundles %}
     <div class="bundles-list">
         {% for bundle in bundles %}
-        <div class="bundle-card">
+        <div class="bundle-card" id="bundle-{{ bundle.id }}" style="cursor: grab">
             <!-- Bundle Header -->
             <div class="bundle-card-header">
                 <div class="bundle-card-info">

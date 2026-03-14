@@ -1,4 +1,6 @@
-from fastapi import APIRouter, Request, Form
+import json as _json
+
+from fastapi import APIRouter, Request, Form, Body
 from fastapi.templating import Jinja2Templates
 from fastapi.responses import JSONResponse
 
@@ -164,7 +166,7 @@ def edit_bundle_form(request: Request, bundle_id: int):
 
 
 @router.post("/api/bundles/{bundle_id}/update")
-def update_bundle(
+async def update_bundle(
     request: Request,
     bundle_id: int,
     name: str = Form(),
@@ -173,6 +175,8 @@ def update_bundle(
     actual_release_date: str = Form(default=None),
 ):
     """API: Обновление пакета."""
+    from typing import List
+    error = None
     try:
         bundle_service.update_bundle(
             bundle_id=bundle_id,
@@ -181,7 +185,19 @@ def update_bundle(
             planned_release_date=planned_release_date if planned_release_date else None,
             actual_release_date=actual_release_date if actual_release_date else None,
         )
-        error = None
+
+        # Добавляем новые элементы (new_project/new_release могут быть множественными)
+        form_data = await request.form()
+        new_projects = form_data.getlist("new_project")
+        new_releases = form_data.getlist("new_release")
+
+        for project_id_str, release_id_str in zip(new_projects, new_releases):
+            if project_id_str and release_id_str:
+                bundle_service.add_item(
+                    bundle_id=bundle_id,
+                    project_id=int(project_id_str),
+                    release_id=int(release_id_str),
+                )
     except ValueError as e:
         error = str(e)
 
@@ -291,6 +307,15 @@ def get_all_projects(request: Request):
             "projects": all_projects,
         },
     )
+
+
+@router.post("/api/bundles/reorder")
+async def reorder_bundles(request: Request):
+    """API: Сохранить новый порядок пакетов."""
+    data = await request.json()
+    ids = data.get("ids", [])
+    bundle_service.reorder_bundles(ids)
+    return JSONResponse(content={"success": True})
 
 
 @router.get("/api/projects/{project_id}/releases/in-progress")

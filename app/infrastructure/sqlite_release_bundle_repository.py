@@ -10,7 +10,7 @@ class SQLiteReleaseBundleRepository:
     def list_bundles(self) -> list[ReleaseBundle]:
         conn = get_connection()
         rows = conn.execute(
-            "SELECT * FROM release_bundles ORDER BY created_at DESC"
+            "SELECT * FROM release_bundles ORDER BY sort_order ASC, id ASC"
         ).fetchall()
         conn.close()
 
@@ -101,6 +101,16 @@ class SQLiteReleaseBundleRepository:
             "DELETE FROM release_bundles WHERE id=?",
             (bundle_id,),
         )
+        conn.commit()
+        conn.close()
+
+    def reorder_bundles(self, ids: list[int]) -> None:
+        conn = get_connection()
+        for order, bundle_id in enumerate(ids):
+            conn.execute(
+                "UPDATE release_bundles SET sort_order=? WHERE id=?",
+                (order, bundle_id),
+            )
         conn.commit()
         conn.close()
 

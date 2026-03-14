@@ -109,6 +109,34 @@
 {% endblock %}
 
 {% block extra_scripts %}
+<script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.2/Sortable.min.js"></script>
+<script>
+    function initBundlesSortable() {
+        const list = document.querySelector('.bundles-list');
+        if (!list) return;
+        Sortable.create(list, {
+            animation: 150,
+            handle: '.bundle-card',
+            ghostClass: 'bundle-card-ghost',
+            onEnd: function () {
+                const ids = Array.from(list.querySelectorAll('.bundle-card'))
+                    .map(el => parseInt(el.id.replace('bundle-', '')));
+                fetch('/api/bundles/reorder', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({ids})
+                });
+            }
+        });
+    }
+
+    document.addEventListener('DOMContentLoaded', initBundlesSortable);
+    document.addEventListener('htmx:afterSwap', function (e) {
+        if (e.detail.target && e.detail.target.id === 'bundles-table') {
+            initBundlesSortable();
+        }
+    });
+</script>
 <script>
     let createItemCounter = 0;
 
