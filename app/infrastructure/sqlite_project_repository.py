@@ -20,6 +20,7 @@ class SQLiteProjectRepository:
                 name=row["name"],
                 url=row["url"],
                 gitlab_project_id=row["gitlab_project_id"],
+                sla_days=row["sla_days"],
             )
             for row in rows
         ]
@@ -84,6 +85,16 @@ class SQLiteProjectRepository:
                 name=row["name"],
                 url=row["url"],
                 gitlab_project_id=row["gitlab_project_id"],
+                sla_days=row["sla_days"],
             )
 
         return None
+
+    def update_project(self, project: Project) -> None:
+        conn = get_connection()
+        conn.execute(
+            "UPDATE projects SET sla_days=? WHERE id=?",
+            (project.sla_days, project.id),
+        )
+        conn.commit()
+        conn.close()

@@ -296,6 +296,7 @@ def release_stage_history(
             "project_name": project.name if project else str(project_id),
             "stage_breakdown": stage_breakdown,
             "total_days": total_days,
+            "sla_days": project.sla_days if project else None,
         },
     )
 

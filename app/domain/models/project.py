@@ -7,3 +7,4 @@ class Project:
     name: str
     url: str
     gitlab_project_id: str
+    sla_days: int | None = None

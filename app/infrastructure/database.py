@@ -22,6 +22,11 @@ def init_db():
         """
     )
 
+    try:
+        conn.execute("ALTER TABLE projects ADD COLUMN sla_days INTEGER")
+    except sqlite3.OperationalError:
+        pass  # колонка уже существует
+
     conn.execute(
         """
         CREATE TABLE IF NOT EXISTS releases (

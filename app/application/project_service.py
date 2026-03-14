@@ -33,3 +33,14 @@ class ProjectService:
 
     def get_project_by_gitlab_id(self, gitlab_project_id: int) -> Project | None:
         return self.repo.get_project_by_gitlab_id(gitlab_project_id)
+
+    def get_project_by_id(self, project_id: int) -> Project | None:
+        projects = self.repo.list_projects()
+        return next((p for p in projects if p.id == project_id), None)
+
+    def update_sla(self, project_id: int, sla_days: int | None) -> None:
+        project = self.get_project_by_id(project_id)
+        if not project:
+            raise ValueError(f"Project {project_id} not found")
+        project.sla_days = sla_days
+        self.repo.update_project(project)

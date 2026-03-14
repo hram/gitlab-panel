@@ -1220,6 +1220,14 @@ tbody td {
   opacity: 0.65;
 }
 
+.summary-stage-bar.is-exceeded {
+  background: linear-gradient(90deg, var(--status-warning) 0%, var(--status-danger) 100%);
+}
+
+.summary-stage-days.is-exceeded {
+  color: var(--status-danger);
+}
+
 .summary-stage-days {
   font-family: var(--font-mono);
   font-size: 12px;
@@ -1232,6 +1240,17 @@ tbody td {
   color: var(--status-info);
 }
 
+.release-summary-sla-status {
+  margin-top: 10px;
+  font-size: 12px;
+  font-weight: 600;
+}
+.sla-ok {
+  color: var(--status-success);
+}
+.sla-exceeded {
+  color: var(--status-danger);
+}
 .release-summary-divider {
   border: none;
   border-top: 1px solid var(--border);

@@ -73,6 +73,37 @@
     </div>
 </div>
 
+<div class="modal-overlay" id="sla-modal" style="display:none"
+     onclick="if(event.target===this)closeSlaModal()">
+    <div class="modal">
+        <div class="modal-header">
+            <div class="modal-title" id="sla-modal-title">Настройки SLA</div>
+            <button class="modal-close" onclick="closeSlaModal()">
+                <svg viewBox="0 0 16 16" fill="currentColor" width="16" height="16">
+                    <path d="M4.646 4.646a.5.5 0 0 1 .708 0L8 7.293l2.646-2.647a.5.5 0 0 1 .708.708L8.707 8l2.647 2.646a.5.5 0 0 1-.708.708L8 8.707l-2.646 2.647a.5.5 0 0 1-.708-.708L7.293 8 4.646 5.354a.5.5 0 0 1 0-.708"/>
+                </svg>
+            </button>
+        </div>
+        <form id="sla-form"
+              hx-target="#projects-table"
+              hx-swap="outerHTML"
+              hx-on::after-request="onSlaUpdated(event)">
+            <div class="modal-body">
+                <div class="form-group" style="margin-bottom:0">
+                    <label class="form-label">SLA (дней)</label>
+                    <input class="form-input" type="number" name="sla_days" id="sla-input"
+                           min="1" placeholder="например: 30">
+                    <div class="form-hint">Целевое время от начала разработки до релиза. Оставьте пустым чтобы отключить SLA.</div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" onclick="closeSlaModal()">Отмена</button>
+                <button type="submit" class="btn btn-primary">Сохранить</button>
+            </div>
+        </form>
+    </div>
+</div>
+
 {% endblock %}
 
 {% block extra_scripts %}
@@ -85,6 +116,25 @@
         closeAddModal();
         showToast('Проект успешно добавлен', 'success');
       }
+    }
+
+    function openSlaModal(projectId, projectName, currentSla) {
+        document.getElementById('sla-modal-title').textContent = 'SLA — ' + projectName;
+        document.getElementById('sla-input').value = currentSla != null ? currentSla : '';
+        document.getElementById('sla-form').setAttribute('hx-post', '/projects/' + projectId + '/update-sla');
+        htmx.process(document.getElementById('sla-form'));
+        document.getElementById('sla-modal').style.display = 'flex';
+    }
+
+    function closeSlaModal() {
+        document.getElementById('sla-modal').style.display = 'none';
+    }
+
+    function onSlaUpdated(event) {
+        if (event.detail.successful) {
+            closeSlaModal();
+            showToast('SLA обновлён', 'success');
+        }
     }
 </script>
 {% endblock %}
