@@ -1042,10 +1042,10 @@ tbody td {
 }
 
 .bundle-item-row {
-  display: flex;
+  display: grid;
+  grid-template-columns: 1fr auto;
   align-items: center;
-  justify-content: space-between;
-  gap: 10px;
+  gap: 12px;
   padding: 10px 12px;
   background: var(--bg-base);
   border: 1px solid var(--border);
@@ -1053,20 +1053,40 @@ tbody td {
 }
 
 .bundle-item-fields {
-  display: flex;
+  display: grid;
+  grid-template-columns: minmax(150px, 1fr) 24px 100px;
   align-items: center;
-  gap: 10px;
-  flex: 1;
+  gap: 8px;
 }
 
-.bundle-item-fields .form-select {
-  min-width: 180px;
+.bundle-item-fields .form-select,
+.bundle-item-release-select,
+.bundle-item-project-select {
+  min-width: unset;
+  width: 100%;
+  padding: 6px 8px;
+  font-size: 13px;
 }
 
 .bundle-item-project-name {
   font-weight: 500;
   color: var(--text-primary);
-  min-width: 120px;
+  font-size: 13px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.bundle-item-arrow {
+  color: var(--accent);
+  font-weight: 600;
+  font-size: 13px;
+  text-align: center;
+}
+
+.bundle-item-remove-btn {
+  flex-shrink: 0;
+  align-self: center;
 }
 
 .action-buttons {
