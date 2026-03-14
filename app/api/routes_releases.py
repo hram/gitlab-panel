@@ -1,3 +1,4 @@
+from datetime import datetime
 from fastapi import APIRouter, Request, Form
 from fastapi.templating import Jinja2Templates
 from fastapi.responses import JSONResponse
@@ -267,6 +268,23 @@ def release_stage_history(
     stages = stage_service.list_stages(project_id)
     project = project_service.get_project_by_gitlab_id(project_id)
 
+    # --- Release Summary ---
+    stage_breakdown = []
+    for h in history_with_durations:
+        if h["duration_days"] is not None and h["old_stage"]:
+            stage_breakdown.append({"stage": h["old_stage"], "days": h["duration_days"], "is_current": False})
+
+    # Время в текущей стадии (если релиз ещё в работе и текущая стадия — не последняя)
+    if history_with_durations and release and release.status != "released":
+        last = history_with_durations[-1]
+        final_stage = max(stages, key=lambda s: s.order).name if stages else None
+        if last["new_stage"] != final_stage:
+            current_days = (datetime.now() - last["changed_at"]).days
+            if current_days >= 0:
+                stage_breakdown.append({"stage": last["new_stage"], "days": current_days, "is_current": True})
+
+    total_days = sum(s["days"] for s in stage_breakdown)
+
     return templates.TemplateResponse(
         "release_stage_history.html",
         {
@@ -276,6 +294,8 @@ def release_stage_history(
             "stages": stages,
             "project_id": project_id,
             "project_name": project.name if project else str(project_id),
+            "stage_breakdown": stage_breakdown,
+            "total_days": total_days,
         },
     )
 

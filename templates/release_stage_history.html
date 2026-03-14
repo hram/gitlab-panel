@@ -55,6 +55,35 @@
     </div>
 </div>
 
+{% if stage_breakdown %}
+<div class="release-summary">
+    <div class="release-summary-header">
+        <div class="release-summary-title">Lifecycle Summary</div>
+        <div class="release-summary-total">
+            <strong>{{ total_days }}</strong> дн. в работе
+        </div>
+    </div>
+    <div class="release-summary-stages">
+        {% for s in stage_breakdown %}
+        {% set pct = ((s.days / total_days * 100) | round | int) if total_days > 0 else 0 %}
+        <div class="summary-stage-row">
+            <div class="summary-stage-name {% if s.is_current %}is-current{% endif %}">
+                {{ s.stage }}{% if s.is_current %} ●{% endif %}
+            </div>
+            <div class="summary-stage-bar-wrap">
+                <div class="summary-stage-bar {% if s.is_current %}is-current{% endif %}"
+                     style="width: {{ pct }}%"></div>
+            </div>
+            <div class="summary-stage-days {% if s.is_current %}is-current{% endif %}">
+                {{ s.days }}д
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+    <hr class="release-summary-divider">
+</div>
+{% endif %}
+
 <div id="history-table">
     {% include "partials/release_history_table.html" with context %}
 </div>
