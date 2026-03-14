@@ -12,6 +12,15 @@
 <span class="current">История стадий</span>
 {% endblock %}
 
+{% block topbar_actions %}
+<button class="btn btn-primary" onclick="openAddModal()">
+    <svg viewBox="0 0 16 16" fill="currentColor">
+        <path d="M8 2a.5.5 0 0 1 .5.5v5h5a.5.5 0 0 1 0 1h-5v5a.5.5 0 0 1-1 0v-5h-5a.5.5 0 0 1 0-1h5v-5A.5.5 0 0 1 8 2"/>
+    </svg>
+    Добавить запись
+</button>
+{% endblock %}
+
 {% block content %}
 
 <div class="page-header">
@@ -46,51 +55,67 @@
     </div>
 </div>
 
-<div class="table-wrapper">
-    <table>
-        <thead>
-        <tr>
-            <th style="width:60px">#</th>
-            <th>Старая стадия</th>
-            <th>Новая стадия</th>
-            <th>Дата изменения</th>
-        </tr>
-        </thead>
-        <tbody>
-        {% for h in history %}
-        <tr>
-            <td style="text-align:center;color:var(--text-secondary)">{{ loop.index }}</td>
-            <td>
-                {% if h.old_stage %}
-                <span class="badge badge-neutral">{{ h.old_stage }}</span>
-                {% else %}
-                <span style="color:var(--text-muted);font-style:italic">— (создание)</span>
-                {% endif %}
-            </td>
-            <td>
-                <span class="badge badge-primary">{{ h.new_stage }}</span>
-            </td>
-            <td style="color:var(--text-secondary);font-size:13px">
-                {{ h.changed_at.strftime('%d.%m.%Y %H:%M:%S') }}
-            </td>
-        </tr>
-        {% else %}
-        <tr>
-            <td colspan="4">
-                <div class="empty-state" style="padding:40px 20px">
-                    <div class="empty-state-icon">
-                        <svg viewBox="0 0 16 16" fill="currentColor">
-                            <path d="M8 16A8 8 0 1 0 8 0a8 8 0 0 0 0 16zm.93-9.412-1 4.705c-.07.34.029.533.304.533.194 0 .487-.07.686-.246l-.088.416c-.287.346-.92.598-1.465.598-.703 0-1.002-.422-.808-1.319l.738-3.468c.064-.293.006-.399-.287-.47l-.451-.081.082-.381 2.29-.287zM8 5.5a1 1 0 1 1 0-2 1 1 0 0 1 0 2z"/>
-                        </svg>
-                    </div>
-                    <div class="empty-state-title">История изменений пуста</div>
-                    <div class="empty-state-text">Изменения стадий будут отображаться здесь</div>
+<div id="history-table">
+    {% include "partials/release_history_table.html" with context %}
+</div>
+
+<!-- ===== МОДАЛКА ДОБАВЛЕНИЯ ЗАПИСИ ===== -->
+<div class="modal-overlay" id="add-modal" style="display:none"
+     onclick="if(event.target===this)closeAddModal()">
+    <div class="modal" style="max-width:500px">
+
+        <div class="modal-header">
+            <div class="modal-title">Добавить запись в историю</div>
+            <button class="modal-close" onclick="closeAddModal()">
+                <svg viewBox="0 0 16 16" fill="currentColor" width="16" height="16">
+                    <path d="M4.646 4.646a.5.5 0 0 1 .708 0L8 7.293l2.646-2.647a.5.5 0 0 1 .708.708L8.707 8l2.647 2.646a.5.5 0 0 1-.708.708L8 8.707l-2.646 2.647a.5.5 0 0 1-.708-.708L7.293 8 4.646 5.354a.5.5 0 0 1 0-.708"/>
+                </svg>
+            </button>
+        </div>
+
+        <form
+                hx-post="/api/releases/{{ release.id }}/history/add"
+                hx-target="#history-table-content"
+                hx-swap="innerHTML"
+                hx-on::after-request="onEntryAdded(event)"
+        >
+            <div class="modal-body">
+
+                <div class="form-group">
+                    <label class="form-label">Старая стадия</label>
+                    <select class="form-input" name="old_stage">
+                        <option value="">— (создание)</option>
+                        {% for stage in stages %}
+                        <option value="{{ stage.name }}">{{ stage.name }}</option>
+                        {% endfor %}
+                    </select>
+                    <div class="form-hint">Оставьте пустым для первой записи (создание релиза)</div>
                 </div>
-            </td>
-        </tr>
-        {% endfor %}
-        </tbody>
-    </table>
+
+                <div class="form-group">
+                    <label class="form-label">Новая стадия</label>
+                    <select class="form-input" name="new_stage" required>
+                        {% for stage in stages %}
+                        <option value="{{ stage.name }}">{{ stage.name }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+
+                <div class="form-group" style="margin-bottom:0">
+                    <label class="form-label">Дата изменения</label>
+                    <input class="form-input" type="date" name="changed_at" required>
+                    <div class="form-hint">Дата перехода в новую стадию</div>
+                </div>
+
+            </div>
+
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" onclick="closeAddModal()">Отмена</button>
+                <button type="submit" class="btn btn-primary">Добавить</button>
+            </div>
+        </form>
+
+    </div>
 </div>
 
 <div style="margin-top:24px">
@@ -102,4 +127,17 @@
     </a>
 </div>
 
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+    function openAddModal()  { document.getElementById('add-modal').style.display = 'flex'; }
+    function closeAddModal() { document.getElementById('add-modal').style.display = 'none'; }
+
+    function onEntryAdded(event) {
+      // Закрываем модалку всегда после успешного запроса
+      closeAddModal();
+      showToast('Запись добавлена', 'success');
+    }
+</script>
 {% endblock %}

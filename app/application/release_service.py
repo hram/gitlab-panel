@@ -3,12 +3,16 @@ import re
 from app.domain.models.release import Release
 from app.domain.models.release_stage_history import ReleaseStageHistory
 from app.infrastructure.sqlite_release_repository import SQLiteReleaseRepository
+from app.application.stage_service import StageService
+from app.application.stage_analytics_service import StageAnalyticsService
 
 
 class ReleaseService:
 
     def __init__(self):
         self.repo = SQLiteReleaseRepository()
+        self.stage_service = StageService()
+        self.analytics_service = StageAnalyticsService()
 
     def list_releases(self, project_id: int):
         return self.repo.list_releases(project_id)
@@ -82,9 +86,77 @@ class ReleaseService:
         """Обновляет прогресс выполнения релиза."""
         self.repo.update_progress(release_id, progress)
 
+    def delete_stage_history(self, history_id: int):
+        """Удаляет запись истории стадии."""
+        self.repo.delete_stage_history(history_id)
+
+    def create_stage_history(
+        self,
+        release_id: int,
+        old_stage: str | None,
+        new_stage: str,
+        changed_at: str,
+        project_id: int | None = None,
+    ):
+        """Создаёт запись истории стадии."""
+        # Валидация порядка стадий
+        if old_stage is not None and project_id is not None:
+            self._validate_stage_transition(old_stage, new_stage, project_id)
+
+        self.repo.create_stage_history(
+            release_id=release_id,
+            old_stage=old_stage,
+            new_stage=new_stage,
+            changed_at=self._parse_datetime_or_date(changed_at),
+        )
+
+    def _validate_stage_transition(self, old_stage: str, new_stage: str, project_id: int):
+        """Проверяет, что переход между стадиями допустим (только вперёд)."""
+        stages = self.stage_service.list_stages(project_id)
+        stage_order = {s.name: s.order for s in stages}
+
+        if old_stage not in stage_order:
+            raise ValueError(f"Неизвестная старая стадия: {old_stage}")
+        if new_stage not in stage_order:
+            raise ValueError(f"Неизвестная новая стадия: {new_stage}")
+
+        if stage_order[new_stage] <= stage_order[old_stage]:
+            raise ValueError(
+                f"Переход из стадии '{old_stage}' в стадию '{new_stage}' запрещён. "
+                f"Стадии могут изменяться только в порядке увеличения order."
+            )
+
+    def calculate_stage_durations(self, history: list[ReleaseStageHistory]) -> list[dict]:
+        """
+        Вычисляет длительность каждой стадии в днях.
+        Делегирует универсальному сервису StageAnalyticsService.
+        """
+        durations = self.analytics_service.calculate_stage_durations(history)
+        return [
+            {
+                'id': d.id,
+                'release_id': d.release_id,
+                'old_stage': d.old_stage,
+                'new_stage': d.new_stage,
+                'changed_at': d.changed_at,
+                'duration_days': d.duration_days,
+            }
+            for d in durations
+        ]
+
     def _is_valid_semver(self, version: str) -> bool:
         pattern = r"^\d+\.\d+\.\d+$"
         return bool(re.match(pattern, version))
 
     def _parse_date(self, date_str: str) -> date:
         return date.fromisoformat(date_str)
+
+    def _parse_datetime_or_date(self, datetime_str: str) -> datetime:
+        """Парсит дату или дату-с-временем. Если только дата — добавляет 00:00:00."""
+        try:
+            # Пробуем как datetime
+            return datetime.fromisoformat(datetime_str)
+        except ValueError:
+            # Если не вышло — это просто дата, добавляем время
+            date_val = date.fromisoformat(datetime_str)
+            return datetime(date_val.year, date_val.month, date_val.day, 0, 0, 0)

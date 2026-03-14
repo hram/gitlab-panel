@@ -199,3 +199,41 @@ class SQLiteReleaseRepository:
 
         conn.commit()
         conn.close()
+
+    def delete_stage_history(self, history_id: int):
+        """Удаляет запись истории стадии."""
+        conn = get_connection()
+
+        conn.execute(
+            "DELETE FROM release_stage_history WHERE id=?",
+            (history_id,),
+        )
+
+        conn.commit()
+        conn.close()
+
+    def create_stage_history(
+        self,
+        release_id: int,
+        old_stage: str | None,
+        new_stage: str,
+        changed_at: datetime,
+    ):
+        """Создаёт запись истории стадии."""
+        conn = get_connection()
+
+        conn.execute(
+            """
+            INSERT INTO release_stage_history(release_id, old_stage, new_stage, changed_at)
+            VALUES (?,?,?,?)
+            """,
+            (
+                release_id,
+                old_stage,
+                new_stage,
+                changed_at.isoformat(),
+            ),
+        )
+
+        conn.commit()
+        conn.close()

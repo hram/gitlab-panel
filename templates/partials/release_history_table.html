@@ -1,0 +1,83 @@
+{% if error %}
+<div class="toast toast-danger" style="position:static;margin-bottom:16px;max-width:100%">
+    <svg viewBox="0 0 16 16" fill="var(--status-danger)" width="16" height="16" style="flex-shrink:0">
+        <path d="M8.982 1.566a1.13 1.13 0 0 0-1.96 0L.165 13.233c-.457.778.091 1.767.98 1.767h13.713c.889 0 1.438-.99.98-1.767zM8 5c.535 0 .954.462.9.995l-.35 3.507a.552.552 0 0 1-1.1 0L7.1 5.995A.905.905 0 0 1 8 5zm.002 6a1 1 0 1 1 0 2 1 1 0 0 1 0-2z"/>
+    </svg>
+    {{ error }}
+</div>
+{% endif %}
+
+<div id="history-table-content">
+<div class="table-wrapper" id="history-table">
+    <table>
+        <thead>
+        <tr>
+            <th style="width:60px">#</th>
+            <th>Старая стадия</th>
+            <th>Новая стадия</th>
+            <th>Дата изменения</th>
+            <th style="width:100px">Длительность</th>
+            <th style="width:80px"></th>
+        </tr>
+        </thead>
+        <tbody>
+        {% for h in history %}
+        <tr>
+            <td style="text-align:center;color:var(--text-secondary)">{{ loop.index }}</td>
+            <td>
+                {% if h.old_stage %}
+                <span class="badge badge-neutral">{{ h.old_stage }}</span>
+                {% else %}
+                <span style="color:var(--text-muted);font-style:italic">— (создание)</span>
+                {% endif %}
+            </td>
+            <td>
+                <span class="badge badge-primary">{{ h.new_stage }}</span>
+            </td>
+            <td style="color:var(--text-secondary);font-size:13px">
+                {{ h.changed_at.strftime('%d.%m.%Y') }}
+            </td>
+            <td style="color:var(--text-secondary);font-size:13px;text-align:center">
+                {% if h.duration_days is not none %}
+                <span style="font-weight:500;color:var(--text-primary)">{{ h.duration_days }}</span>
+                <span style="font-size:11px;color:var(--text-muted)"> дн.</span>
+                {% else %}
+                <span style="color:var(--text-muted)">—</span>
+                {% endif %}
+            </td>
+            <td>
+                <button
+                    class="btn btn-ghost btn-icon btn-sm"
+                    style="color:var(--status-danger)"
+                    title="Удалить запись"
+                    hx-post="/api/releases/{{ release.id }}/history/{{ h.id }}/delete"
+                    hx-target="#history-table-content"
+                    hx-swap="innerHTML"
+                    hx-confirm="Удалить запись истории?"
+                >
+                    <svg viewBox="0 0 16 16" fill="currentColor" width="13" height="13">
+                        <path d="M5.5 5.5A.5.5 0 0 1 6 6v6a.5.5 0 0 1-1 0V6a.5.5 0 0 1 .5-.5m2.5 0a.5.5 0 0 1 .5.5v6a.5.5 0 0 1-1 0V6a.5.5 0 0 1 .5-.5m3 .5a.5.5 0 0 0-1 0v6a.5.5 0 0 0 1 0z"/>
+                        <path d="M14.5 3a1 1 0 0 1-1 1H13v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V4h-.5a1 1 0 0 1-1-1V2a1 1 0 0 1 1-1H6a1 1 0 0 1 1-1h2a1 1 0 0 1 1 1h3.5a1 1 0 0 1 1 1zM4.118 4 4 4.059V13a1 1 0 0 0 1 1h6a1 1 0 0 0 1-1V4.059L11.882 4zM2.5 3h11V2h-11z"/>
+                    </svg>
+                </button>
+            </td>
+        </tr>
+        {% else %}
+        <tr>
+            <td colspan="6">
+                <div class="empty-state" style="padding:40px 20px">
+                    <div class="empty-state-icon">
+                        <svg viewBox="0 0 16 16" fill="currentColor">
+                            <path d="M8 16A8 8 0 1 0 8 0a8 8 0 0 0 0 16zm.93-9.412-1 4.705c-.07.34.029.533.304.533.194 0 .487-.07.686-.246l-.088.416c-.287.346-.92.598-1.465.598-.703 0-1.002-.422-.808-1.319l.738-3.468c.064-.293.006-.399-.287-.47l-.451-.081.082-.381 2.29-.287zM8 5.5a1 1 0 1 1 0-2 1 1 0 0 1 0 2z"/>
+                        </svg>
+                    </div>
+                    <div class="empty-state-title">История изменений пуста</div>
+                    <div class="empty-state-text">Изменения стадий будут отображаться здесь</div>
+                </div>
+            </td>
+        </tr>
+        {% endfor %}
+        </tbody>
+    </table>
+</div>
+</div>

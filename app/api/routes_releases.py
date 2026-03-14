@@ -263,6 +263,8 @@ def release_stage_history(
 ):
     release = release_service.get_release_by_id(release_id)
     history = release_service.get_stage_history(release_id)
+    history_with_durations = release_service.calculate_stage_durations(history)
+    stages = stage_service.list_stages(project_id)
     project = project_service.get_project_by_gitlab_id(project_id)
 
     return templates.TemplateResponse(
@@ -270,9 +272,80 @@ def release_stage_history(
         {
             "request": request,
             "release": release,
-            "history": history,
+            "history": history_with_durations,
+            "stages": stages,
             "project_id": project_id,
             "project_name": project.name if project else str(project_id),
+        },
+    )
+
+
+@router.post("/api/releases/{release_id}/history/{history_id}/delete")
+def delete_stage_history_entry(
+    request: Request,
+    release_id: int,
+    history_id: int,
+):
+    """Удаляет запись истории стадии."""
+    release_service.delete_stage_history(history_id)
+
+    # Возвращаем обновлённую таблицу
+    history = release_service.get_stage_history(release_id)
+    history_with_durations = release_service.calculate_stage_durations(history)
+    release = release_service.get_release_by_id(release_id)
+    stages = stage_service.list_stages(release.project_id) if release else []
+
+    return templates.TemplateResponse(
+        "partials/release_history_table.html",
+        {
+            "request": request,
+            "release": release,
+            "history": history_with_durations,
+            "project_id": release.project_id if release else release_id,
+            "stages": stages,
+        },
+    )
+
+
+@router.post("/api/releases/{release_id}/history/add")
+def add_stage_history_entry(
+    request: Request,
+    release_id: int,
+    old_stage: str = Form(default=None),
+    new_stage: str = Form(),
+    changed_at: str = Form(),
+):
+    """Добавляет запись в историю стадии."""
+    try:
+        release_service.create_stage_history(
+            release_id=release_id,
+            old_stage=old_stage if old_stage else None,
+            new_stage=new_stage,
+            changed_at=changed_at,
+            project_id=release_service.get_release_by_id(release_id).project_id if release_service.get_release_by_id(release_id) else None,
+        )
+        error = None
+    except Exception as e:
+        error = str(e)
+
+    # Возвращаем обновлённую таблицу
+    history = release_service.get_stage_history(release_id)
+    history_with_durations = release_service.calculate_stage_durations(history)
+    release = release_service.get_release_by_id(release_id)
+
+    # Получаем project_id из релиза
+    project = project_service.get_project_by_gitlab_id(release.project_id) if release else None
+    stages = stage_service.list_stages(release.project_id) if release else []
+
+    return templates.TemplateResponse(
+        "partials/release_history_table.html",
+        {
+            "request": request,
+            "release": release,
+            "history": history_with_durations,
+            "project_id": release.project_id if release else release_id,
+            "stages": stages,
+            "error": error,
         },
     )
 
