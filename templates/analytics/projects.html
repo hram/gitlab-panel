@@ -1,0 +1,38 @@
+{% extends "layout.html" %}
+
+{% block title %}Аналитика проектов — GitLab Panel{% endblock %}
+
+{% block breadcrumbs %}
+<a href="/">Главная</a>
+<span class="sep">/</span>
+<a href="/analytics/projects">Аналитика</a>
+<span class="sep">/</span>
+<span class="current">Проекты</span>
+{% endblock %}
+
+{% block content %}
+
+<div class="page-header">
+    <div>
+        <div class="page-title">Аналитика проектов</div>
+        <div class="page-subtitle">Сводная аналитика по всем проектам</div>
+    </div>
+</div>
+
+<div class="card">
+    <div class="empty-state" style="padding:60px 20px">
+        <div class="empty-state-icon">
+            <svg viewBox="0 0 16 16" fill="currentColor" width="48" height="48">
+                <path d="M14 11V2a1 1 0 0 0-1-1H3a1 1 0 0 0-1 1v9z"/>
+                <path d="M5.5 1a.5.5 0 0 1 .5.5v5a.5.5 0 0 1-1 0v-5A.5.5 0 0 1 5.5 1m3 0a.5.5 0 0 1 .5.5v5a.5.5 0 0 1-1 0v-5A.5.5 0 0 1 8.5 1m3 0a.5.5 0 0 1 .5.5v5a.5.5 0 0 1-1 0v-5A.5.5 0 0 1 11.5 1M14 11.5v1.5a1 1 0 0 1-1 1H3a1 1 0 0 1-1-1v-1.5h12z"/>
+            </svg>
+        </div>
+        <div class="empty-state-title">Страница в разработке</div>
+        <div class="empty-state-text">
+            Здесь будет собрана сводная аналитика по всем проектам:<br>
+            метрики, графики и сравнение эффективности команд.
+        </div>
+    </div>
+</div>
+
+{% endblock %}
