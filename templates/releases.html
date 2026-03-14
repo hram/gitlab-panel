@@ -197,8 +197,8 @@
         <div class="modal-footer">
             <button type="button" class="btn btn-secondary" onclick="closeImportModal()">Отмена</button>
             <button type="button" class="btn btn-primary" id="import-next-btn" disabled onclick="importNextStep()">
-                Далее
-                <svg viewBox="0 0 16 16" fill="currentColor" width="14" height="14">
+                <span id="import-next-label">Далее</span>
+                <svg id="import-next-icon" viewBox="0 0 16 16" fill="currentColor" width="14" height="14">
                     <path fill-rule="evenodd" d="M4.646 1.646a.5.5 0 0 1 .708 0l6 6a.5.5 0 0 1 0 .708l-6 6a.5.5 0 0 1-.708-.708L10.293 8 4.646 2.354a.5.5 0 0 1 0-.708z"/>
                 </svg>
             </button>
@@ -424,8 +424,125 @@
 
         if (importCurrentStep === 3) {
             collectSuffix();
-            // Шаг 4 — будет реализован позже
-            console.log('Импорт:', { importSelectedVersions, importStageOrders, importVersionSuffix });
+            renderPreviewStep();
+            return;
+        }
+
+        if (importCurrentStep === 4) {
+            runBulkCreate();
+        }
+    }
+
+    // --- Шаг 4: превью и финальный импорт ---
+
+    let importPreviewItems = [];
+
+    async function renderPreviewStep() {
+        const stepNum = PROJECT_HAS_STAGES ? 3 : 4;
+        importCurrentStep = 4;
+        setStepLabel(`Шаг ${stepNum} — подтверждение импорта`);
+        setNextBtn(false);
+        document.getElementById('import-next-label').textContent = 'Импортировать';
+        document.getElementById('import-next-icon').innerHTML =
+            '<path d="M.5 9.9a.5.5 0 0 1 .5.5v2.5a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-2.5a.5.5 0 0 1 1 0v2.5a2 2 0 0 1-2 2H2a2 2 0 0 1-2-2v-2.5a.5.5 0 0 1 .5-.5"/><path d="M7.646 11.854a.5.5 0 0 0 .708 0l3-3a.5.5 0 0 0-.708-.708L8.5 10.293V1.5a.5.5 0 0 0-1 0v8.793L5.354 8.146a.5.5 0 1 0-.708.708z"/>';
+
+        const body = document.getElementById('import-modal-body');
+        body.innerHTML = `
+            <div style="display:flex;flex-direction:column;align-items:center;gap:12px;padding:24px 0;color:var(--text-muted)">
+                <svg viewBox="0 0 16 16" fill="currentColor" width="24" height="24" style="animation:spin 1s linear infinite;opacity:0.5">
+                    <path d="M8 3a5 5 0 1 0 5 5 .5.5 0 0 1 1 0 6 6 0 1 1-6-6 .5.5 0 0 1 0 1"/>
+                </svg>
+                <span style="font-size:13px">Ищем версии в Jira…</span>
+            </div>`;
+
+        try {
+            const resp = await fetch(
+                `/api/projects/${GITLAB_PROJECT_ID}/releases/import/preview`,
+                {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({
+                        versions: importSelectedVersions,
+                        suffix: importVersionSuffix,
+                    }),
+                }
+            );
+            const data = await resp.json();
+            if (data.error) { showImportError(data.error); return; }
+            importPreviewItems = data.items;
+            renderPreviewTable(data.items);
+        } catch (e) {
+            showImportError('Не удалось получить данные из Jira');
+        }
+    }
+
+    function renderPreviewTable(items) {
+        const rows = items.map(item => {
+            const jiraCell = item.jira_id
+                ? `<span style="font-family:var(--font-mono);font-size:12px;color:var(--accent)">${item.jira_id}</span>`
+                : `<span style="font-size:12px;color:var(--text-muted)">не найдено</span>`;
+            return `
+                <tr>
+                    <td style="font-family:var(--font-mono);font-size:13px;color:var(--text-primary)">${item.version}</td>
+                    <td style="font-family:var(--font-mono);font-size:12px;color:var(--text-secondary)">${item.jira_name}</td>
+                    <td>${jiraCell}</td>
+                </tr>`;
+        }).join('');
+
+        document.getElementById('import-modal-body').innerHTML = `
+            <div style="margin-bottom:10px;font-size:12px;color:var(--text-muted)">
+                Версии к импорту — проверьте данные перед сохранением
+            </div>
+            <div class="table-wrapper" style="max-height:300px;overflow-y:auto">
+                <table>
+                    <thead><tr>
+                        <th>Версия</th>
+                        <th>Имя в Jira</th>
+                        <th>Jira ID</th>
+                    </tr></thead>
+                    <tbody>${rows}</tbody>
+                </table>
+            </div>`;
+
+        setNextBtn(true);
+    }
+
+    async function runBulkCreate() {
+        setNextBtn(false);
+        const btn = document.getElementById('import-next-btn');
+        btn.innerHTML = `
+            <svg viewBox="0 0 16 16" fill="currentColor" width="14" height="14" style="animation:spin 1s linear infinite">
+                <path d="M8 3a5 5 0 1 0 5 5 .5.5 0 0 1 1 0 6 6 0 1 1-6-6 .5.5 0 0 1 0 1"/>
+            </svg>
+            Сохраняем…`;
+
+        try {
+            const resp = await fetch(
+                `/api/projects/${GITLAB_PROJECT_ID}/releases/import/bulk-create`,
+                {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({
+                        releases: importPreviewItems.map(i => ({version: i.version, jira_id: i.jira_id})),
+                        stage_orders: importStageOrders,
+                    }),
+                }
+            );
+
+            if (resp.ok) {
+                const html = await resp.text();
+                const target = document.getElementById('releases-table-content');
+                if (target) target.outerHTML = html;
+                closeImportModal();
+                showToast(`Импортировано релизов: ${importPreviewItems.length}`, 'success');
+            } else {
+                const data = await resp.json().catch(() => ({}));
+                showImportError(data.error || 'Ошибка при сохранении');
+                setNextBtn(true);
+            }
+        } catch (e) {
+            showImportError('Ошибка при сохранении релизов');
+            setNextBtn(true);
         }
     }
 </script>

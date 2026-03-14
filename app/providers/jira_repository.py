@@ -176,6 +176,26 @@ class JiraRepository:
         except Exception:
             return False
 
+    def get_project_versions(self, project_key: str) -> list[dict]:
+        """
+        Возвращает все версии Jira-проекта.
+        GET /rest/api/2/project/{projectKey}/versions
+        Каждый элемент содержит поля id, name, released и др.
+        """
+        try:
+            response = requests.get(
+                f"{self.base_url}/rest/api/2/project/{project_key}/versions",
+                auth=self.auth,
+                headers=self.headers,
+            )
+            if response.status_code == 200:
+                return response.json()
+            logger.error(f"Jira get_project_versions error {response.status_code}: {response.text[:200]}")
+            return []
+        except Exception as e:
+            logger.error(f"Jira get_project_versions exception: {e}")
+            return []
+
     def add_comment(self, issue_key: str, comment: str) -> bool:
         """
         Добавляет комментарий к задаче Jira.

@@ -10,7 +10,8 @@ from app.application.stage_service import StageService
 from app.application.branch_service import BranchService
 from app.application.commit_check_service import CommitCheckService
 from app.application.jira_progress_service import JiraProgressService
-from app.infrastructure.config import JIRA_URL
+from app.infrastructure.config import JIRA_URL, JIRA_PROJECT_KEY
+from app.providers.jira_repository import JiraRepository
 
 logger = logging.getLogger(__name__)
 
@@ -451,6 +452,91 @@ def get_gitlab_versions(project_id: int):
     sorted_versions = sorted(versions, key=semver_key, reverse=True)
 
     return JSONResponse({"versions": sorted_versions, "branch_data": branch_data})
+
+
+@router.post("/api/projects/{project_id}/releases/import/preview")
+async def import_preview(project_id: int, request: Request):
+    """
+    Шаг 4 визарда: для каждой выбранной версии ищет совпадение в Jira по имени.
+    Имя = "<version> <suffix>" или "<version>" если суффикс пустой.
+    """
+    body = await request.json()
+    versions: list[str] = body.get("versions", [])
+    suffix: str = body.get("suffix", "").strip()
+
+    try:
+        jira = JiraRepository()
+        all_jira_versions = jira.get_project_versions(JIRA_PROJECT_KEY)
+    except Exception as e:
+        return JSONResponse({"error": str(e)}, status_code=500)
+
+    jira_by_name = {v["name"]: v["id"] for v in all_jira_versions}
+
+    items = []
+    for version in versions:
+        jira_name = f"{version} {suffix}" if suffix else version
+        jira_id = jira_by_name.get(jira_name)
+        items.append({"version": version, "jira_name": jira_name, "jira_id": jira_id})
+
+    return JSONResponse({"items": items})
+
+
+@router.post("/api/projects/{project_id}/releases/import/bulk-create")
+async def bulk_create_releases(project_id: int, request: Request):
+    """
+    Финальный шаг визарда: создаёт стадии (если переданы) и релизы.
+    Тело запроса JSON: {releases: [{version, jira_id}], stage_orders: {name: order}}
+    """
+    body = await request.json()
+    releases_data: list[dict] = body.get("releases", [])
+    stage_orders: dict = body.get("stage_orders", {})
+
+    # 1. Создаём стадии если нужно
+    if stage_orders:
+        for stage_name, order in stage_orders.items():
+            try:
+                stage_service.create_stage(project_id=project_id, name=stage_name, order=int(order))
+            except Exception:
+                pass
+
+    # 2. Определяем стартовую стадию (минимальный порядок)
+    stages = stage_service.list_stages(project_id)
+    if not stages:
+        return JSONResponse({"error": "Нет стадий для проекта"}, status_code=400)
+    first_stage = min(stages, key=lambda s: s.order)
+
+    # 3. Создаём релизы
+    errors = []
+    for r in releases_data:
+        try:
+            release_service.create_release(
+                project_id=project_id,
+                version=r["version"],
+                status="in_progress",
+                stage=first_stage.name,
+                jira_fix_version=r.get("jira_id") or None,
+            )
+        except ValueError as e:
+            errors.append(str(e))
+
+    releases = release_service.list_releases(project_id)
+    project = project_service.get_project_by_gitlab_id(project_id)
+    stages_list = stage_service.list_stages(project_id)
+
+    return templates.TemplateResponse(
+        "partials/releases_table.html",
+        {
+            "request": request,
+            "releases": releases,
+            "project_id": project_id,
+            "project_name": project.name if project else str(project_id),
+            "stages": stages_list,
+            "error": "; ".join(errors) if errors else None,
+            "warning": None,
+            "created_branches": [],
+            "jira_url": JIRA_URL,
+        },
+    )
 
 
 @router.get("/api/projects/{project_id}/releases/check-commits")
