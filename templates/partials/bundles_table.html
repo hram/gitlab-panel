@@ -4,83 +4,64 @@
     {% endif %}
 
     {% if bundles %}
-    <table class="table">
-        <thead>
-            <tr>
-                <th style="width: 50%">Пакет</th>
-                <th style="width: 35%">Прогресс</th>
-                <th style="width: 15%">Действия</th>
-            </tr>
-        </thead>
-        <tbody>
-            {% for bundle in bundles %}
-            <!-- Bundle Header Row -->
-            <tr class="bundle-header-row">
-                <td colspan="3">
-                    <div class="bundle-header">
-                        <div class="bundle-header-info">
-                            <span class="bundle-name">{{ bundle.name }}</span>
-                            <div class="bundle-meta">
-                                {% if bundle.planned_release_date %}
-                                <span class="badge badge-info">План: {{ bundle.planned_release_date }}</span>
-                                {% endif %}
-                                {% if bundle.status %}
-                                <span class="badge badge-{{ bundle.status }}">{{ bundle.status }}</span>
-                                {% endif %}
+    <div class="bundles-list">
+        {% for bundle in bundles %}
+        <div class="bundle-card">
+            <!-- Bundle Header -->
+            <div class="bundle-card-header">
+                <div class="bundle-card-info">
+                    <span class="bundle-card-name">{{ bundle.name }}</span>
+                    <div class="bundle-card-meta">
+                        {% if bundle.planned_release_date %}
+                        <span class="badge badge-info">План: {{ bundle.planned_release_date }}</span>
+                        {% endif %}
+                        {% if bundle.status %}
+                        <span class="badge badge-{{ bundle.status }}">{{ bundle.status }}</span>
+                        {% endif %}
+                    </div>
+                </div>
+                <div class="bundle-card-actions">
+                    <button class="btn btn-sm btn-secondary" onclick="openEditModal({{ bundle.id }})">
+                        <svg viewBox="0 0 16 16" fill="currentColor" width="14" height="14">
+                            <path d="M12.146.146a.5.5 0 0 1 .708 0l3 3a.5.5 0 0 1 0 .708l-10 10a.5.5 0 0 1-.168.11l-5 2a.5.5 0 0 1-.65-.65l2-5a.5.5 0 0 1 .11-.168zM11.207 2.5 13.5 4.793 14.793 3.5 12.5 1.207zm1.586 3L10.5 3.207 4 9.707V10h.5a.5.5 0 0 1 .5.5v.5h.5a.5.5 0 0 1 .5.5v.5h.293zm-9.761 5.175-.106.106-1.528 3.821 3.821-1.528.106-.106A.5.5 0 0 1 5 12.5V12h-.5a.5.5 0 0 1-.5-.5V11h-.5a.5.5 0 0 1-.468-.325"/>
+                        </svg>
+                        Изменить
+                    </button>
+                    <button class="btn btn-sm btn-danger" onclick="confirmDelete({{ bundle.id }}, '{{ bundle.name }}')">
+                        <svg viewBox="0 0 16 16" fill="currentColor" width="14" height="14">
+                            <path d="M5.5 5.5A.5.5 0 0 1 6 6v6a.5.5 0 0 1-1 0V6a.5.5 0 0 1 .5-.5m2.5 0a.5.5 0 0 1 .5.5v6a.5.5 0 0 1-1 0V6a.5.5 0 0 1 .5-.5m3 .5a.5.5 0 0 0-1 0v6a.5.5 0 0 0 1 0z"/>
+                            <path d="M14.5 3a1 1 0 0 1-1 1H13v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V4h-.5a1 1 0 0 1-1-1V2a1 1 0 0 1 1-1H6a1 1 0 0 1 1-1h2a1 1 0 0 1 1 1h3.5a1 1 0 0 1 1 1zM4.118 4 4 4.059V13a1 1 0 0 0 1 1h6a1 1 0 0 0 1-1V4.059L11.882 4zM2.5 3h11V2h-11z"/>
+                        </svg>
+                        Удалить
+                    </button>
+                </div>
+            </div>
+            
+            <!-- Bundle Items Grid -->
+            <div class="bundle-card-body">
+                <div class="bundle-items-grid">
+                    {% for item in bundle.items %}
+                    <div class="bundle-item-row-grid">
+                        <div class="bundle-item-info">
+                            <span class="bundle-item-project-col">{{ item.project.name if item.project else 'Project ' ~ item.project_id }}</span>
+                            <span class="bundle-item-arrow-col">→</span>
+                            <span class="bundle-item-release-col">{{ item.release.version if item.release else 'Release ' ~ item.release_id }}</span>
+                        </div>
+                        <div class="bundle-item-progress">
+                            <span class="bundle-item-project-col">{{ item.project.name if item.project else 'Project ' ~ item.project_id }}</span>
+                            <span class="bundle-item-arrow-col">→</span>
+                            <div class="bundle-item-progress-bar">
+                                <div style="width:{{ item.release.progress if item.release else 0 }}%;height:100%;background:linear-gradient(90deg, var(--accent) 0%, var(--status-success) 100%);border-radius:4px;transition:width 0.3s ease"></div>
                             </div>
-                        </div>
-                        <div class="bundle-header-actions">
-                            <button class="btn btn-sm btn-secondary" onclick="openEditModal({{ bundle.id }})">
-                                <svg viewBox="0 0 16 16" fill="currentColor" width="14" height="14">
-                                    <path d="M12.146.146a.5.5 0 0 1 .708 0l3 3a.5.5 0 0 1 0 .708l-10 10a.5.5 0 0 1-.168.11l-5 2a.5.5 0 0 1-.65-.65l2-5a.5.5 0 0 1 .11-.168zM11.207 2.5 13.5 4.793 14.793 3.5 12.5 1.207zm1.586 3L10.5 3.207 4 9.707V10h.5a.5.5 0 0 1 .5.5v.5h.5a.5.5 0 0 1 .5.5v.5h.293zm-9.761 5.175-.106.106-1.528 3.821 3.821-1.528.106-.106A.5.5 0 0 1 5 12.5V12h-.5a.5.5 0 0 1-.5-.5V11h-.5a.5.5 0 0 1-.468-.325"/>
-                                </svg>
-                                Изменить
-                            </button>
-                            <button class="btn btn-sm btn-danger" onclick="confirmDelete({{ bundle.id }}, '{{ bundle.name }}')">
-                                <svg viewBox="0 0 16 16" fill="currentColor" width="14" height="14">
-                                    <path d="M5.5 5.5A.5.5 0 0 1 6 6v6a.5.5 0 0 1-1 0V6a.5.5 0 0 1 .5-.5m2.5 0a.5.5 0 0 1 .5.5v6a.5.5 0 0 1-1 0V6a.5.5 0 0 1 .5-.5m3 .5a.5.5 0 0 0-1 0v6a.5.5 0 0 0 1 0z"/>
-                                    <path d="M14.5 3a1 1 0 0 1-1 1H13v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V4h-.5a1 1 0 0 1-1-1V2a1 1 0 0 1 1-1H6a1 1 0 0 1 1-1h2a1 1 0 0 1 1 1h3.5a1 1 0 0 1 1 1zM4.118 4 4 4.059V13a1 1 0 0 0 1 1h6a1 1 0 0 0 1-1V4.059L11.882 4zM2.5 3h11V2h-11z"/>
-                                </svg>
-                                Удалить
-                            </button>
+                            <span class="bundle-item-progress-value">{{ "%.0f"|format(item.release.progress if item.release else 0) }}%</span>
                         </div>
                     </div>
-                </td>
-            </tr>
-            <!-- Bundle Items Row -->
-            <tr class="bundle-items-row">
-                <td>
-                    <div class="bundle-items">
-                        {% for item in bundle.items %}
-                        <div class="bundle-item">
-                            <span class="bundle-item-project">{{ item.project.name if item.project else 'Project ' ~ item.project_id }}</span>
-                            <span class="bundle-item-arrow">→</span>
-                            <span class="bundle-item-release">{{ item.release.version if item.release else 'Release ' ~ item.release_id }}</span>
-                        </div>
-                        {% endfor %}
-                    </div>
-                </td>
-                <td>
-                    <div class="bundle-progress">
-                        {% for item in bundle.items %}
-                        <div class="progress-item">
-                            <span class="progress-item-name">{{ item.project.name if item.project else 'Project ' ~ item.project_id }}</span>
-                            <span class="progress-item-arrow">→</span>
-                            <div style="display:flex;align-items:center;gap:8px;flex:1">
-                                <div style="flex:1;height:8px;background:var(--bg-elevated);border-radius:4px;overflow:hidden;min-width:80px">
-                                    <div style="width:{{ item.release.progress if item.release else 0 }}%;height:100%;background:linear-gradient(90deg, var(--accent) 0%, var(--status-success) 100%);border-radius:4px;transition:width 0.3s ease"></div>
-                                </div>
-                                <span style="font-size:12px;color:var(--text-secondary);min-width:35px;text-align:right">{{ "%.0f"|format(item.release.progress if item.release else 0) }}%</span>
-                            </div>
-                        </div>
-                        {% endfor %}
-                    </div>
-                </td>
-                <td></td>
-            </tr>
-            {% endfor %}
-        </tbody>
-    </table>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
     {% else %}
     <div class="empty-state">
         <p>Пакеты ещё не созданы</p>
