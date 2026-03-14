@@ -1,6 +1,7 @@
 from fastapi import APIRouter, Request, Form
 from fastapi.templating import Jinja2Templates
 from fastapi.responses import JSONResponse
+import logging
 
 from app.application.release_service import ReleaseService
 from app.application.project_service import ProjectService
@@ -9,6 +10,8 @@ from app.application.branch_service import BranchService
 from app.application.commit_check_service import CommitCheckService
 from app.application.jira_progress_service import JiraProgressService
 from app.infrastructure.config import JIRA_URL
+
+logger = logging.getLogger(__name__)
 
 
 router = APIRouter()
@@ -32,6 +35,23 @@ def list_releases(
     project = project_service.get_project_by_gitlab_id(project_id)
     stages = stage_service.list_stages(project_id)
     source_branch = branch_service.get_next_release_source_branch(project_id)
+    
+    # Автоматически вычисляем прогресс для релизов с jira_fix_version и статусом "in_progress"
+    for release in releases:
+        if release.jira_fix_version and release.status == "in_progress":
+            try:
+                result = jira_progress_service.calculate_release_progress(
+                    fix_version=release.jira_fix_version,
+                    project_key="TBLT"
+                )
+                if result["progress"] != release.progress:
+                    release_service.update_progress(release.id, result["progress"])
+                    logger.info(f"Auto-updated progress for release {release.version}: {release.progress}% -> {result['progress']}%")
+            except Exception as e:
+                logger.error(f"Error auto-calculating progress for release {release.version}: {e}")
+    
+    # Перезагружаем список с обновлённым прогрессом
+    releases = release_service.list_releases(project_id)
 
     return templates.TemplateResponse(
         "partials/releases_table.html",

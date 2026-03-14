@@ -59,8 +59,11 @@
   --font-mono:  'JetBrains Mono', 'Fira Code', monospace;
 
   /* Sidebar */
-  --sidebar-width: 240px;
-  --topbar-height: 56px;
+  --sidebar-width: 200px;
+  --topbar-height: 65px;
+
+  /* Масштаб */
+  --scale: 1.3;
 
   /* Анимации */
   --transition: 150ms ease;
@@ -70,7 +73,11 @@
 /* --- Сброс и база --- */
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
-html { font-size: 14px; -webkit-font-smoothing: antialiased; }
+html { 
+  font-size: calc(14px * var(--scale)); 
+  -webkit-font-smoothing: antialiased;
+  zoom: var(--scale);
+}
 
 body {
   font-family: var(--font-sans);
