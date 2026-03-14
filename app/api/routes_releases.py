@@ -514,13 +514,19 @@ async def bulk_create_releases(project_id: int, request: Request):
     errors = []
     for r in releases_data:
         try:
+            is_released = r.get("released", False)
             release_service.create_release(
                 project_id=project_id,
                 version=r["version"],
-                status="released" if r.get("released") else "in_progress",
+                status="released" if is_released else "in_progress",
                 stage=first_stage.name,
                 jira_fix_version=r.get("jira_id") or None,
             )
+            if is_released:
+                all_releases = release_service.list_releases(project_id)
+                created = next((x for x in all_releases if x.version == r["version"]), None)
+                if created:
+                    release_service.update_progress(created.id, 100.0)
         except ValueError as e:
             errors.append(str(e))
 

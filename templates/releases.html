@@ -537,12 +537,12 @@
             );
 
             if (resp.ok) {
-                const html = await resp.text();
-                const target = document.getElementById('releases-table-content');
-                if (target) target.outerHTML = html;
-                htmx.process(document.getElementById('releases-table-content'));
                 closeImportModal();
                 showToast(`Импортировано релизов: ${importPreviewItems.length}`, 'success');
+                htmx.ajax('GET', `/api/projects/${GITLAB_PROJECT_ID}/releases`, {
+                    target: '#releases-table-content',
+                    swap: 'outerHTML',
+                });
             } else {
                 const data = await resp.json().catch(() => ({}));
                 showImportError(data.error || 'Ошибка при сохранении');
