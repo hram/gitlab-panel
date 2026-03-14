@@ -63,12 +63,15 @@ def project_releases_page(request: Request, project_id: int):
 @router.get("/projects/{project_id}/stages")
 def project_stages_page(request: Request, project_id: int):
     project = project_service.get_project_by_gitlab_id(project_id)
+    all_projects = project_service.list_projects()
+    other_projects = [p for p in all_projects if str(p.gitlab_project_id) != str(project_id)]
     return templates.TemplateResponse(
         "stages.html",
         {
             "request": request,
             "project_id": project_id,
             "project_name": project.name if project else str(project_id),
+            "other_projects": other_projects,
         },
     )
 

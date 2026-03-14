@@ -69,6 +69,38 @@ def create_stage(
     return response
 
 
+@router.post("/api/projects/{project_id}/stages/import")
+def import_stages(
+    request: Request,
+    project_id: int,
+    source_project_id: int = Form(),
+):
+    source_stages = stage_service.list_stages(source_project_id)
+    for s in source_stages:
+        try:
+            stage_service.create_stage(
+                project_id=project_id,
+                name=s.name,
+                order=s.order,
+            )
+        except Exception:
+            pass
+
+    stages = stage_service.list_stages(project_id)
+    project = project_service.get_project_by_gitlab_id(project_id)
+
+    return templates.TemplateResponse(
+        "partials/stages_table.html",
+        {
+            "request": request,
+            "stages": stages,
+            "project_id": project_id,
+            "project_name": project.name if project else str(project_id),
+            "error": None,
+        },
+    )
+
+
 @router.post("/api/projects/{project_id}/stages/{stage_id}/delete")
 def delete_stage(
     request: Request,

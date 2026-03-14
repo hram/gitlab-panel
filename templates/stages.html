@@ -105,17 +105,68 @@
     </div>
 </div>
 
+<!-- ===== МОДАЛКА ИМПОРТА СТАДИЙ ===== -->
+<div class="modal-overlay" id="import-modal" style="display:none"
+     onclick="if(event.target===this)closeImportModal()">
+    <div class="modal" style="max-width:450px">
+
+        <div class="modal-header">
+            <div class="modal-title">Импортировать стадии</div>
+            <button class="modal-close" onclick="closeImportModal()">
+                <svg viewBox="0 0 16 16" fill="currentColor" width="16" height="16">
+                    <path d="M4.646 4.646a.5.5 0 0 1 .708 0L8 7.293l2.646-2.647a.5.5 0 0 1 .708.708L8.707 8l2.647 2.646a.5.5 0 0 1-.708.708L8 8.707l-2.646 2.647a.5.5 0 0 1-.708-.708L7.293 8 4.646 5.354a.5.5 0 0 1 0-.708"/>
+                </svg>
+            </button>
+        </div>
+
+        <form
+                hx-post="/api/projects/{{ project_id }}/stages/import"
+                hx-target="#stages-table-content"
+                hx-swap="outerHTML"
+                hx-on::after-request="onImportDone(event)"
+        >
+            <div class="modal-body">
+                <div class="form-group" style="margin-bottom:0">
+                    <label class="form-label">Скопировать стадии из проекта</label>
+                    <select class="form-input" name="source_project_id" required>
+                        <option value="">— выберите проект —</option>
+                        {% for p in other_projects %}
+                        <option value="{{ p.gitlab_project_id }}">{{ p.name }}</option>
+                        {% endfor %}
+                    </select>
+                    <div class="form-hint">Стадии будут скопированы в текущий проект</div>
+                </div>
+            </div>
+
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" onclick="closeImportModal()">Отмена</button>
+                <button type="submit" class="btn btn-primary">Импортировать</button>
+            </div>
+        </form>
+
+    </div>
+</div>
+
 {% endblock %}
 
 {% block extra_scripts %}
 <script>
-    function openAddModal()  { document.getElementById('add-modal').style.display = 'flex'; }
-    function closeAddModal() { document.getElementById('add-modal').style.display = 'none'; }
+    function openAddModal()    { document.getElementById('add-modal').style.display = 'flex'; }
+    function closeAddModal()   { document.getElementById('add-modal').style.display = 'none'; }
+    function openImportModal() { document.getElementById('import-modal').style.display = 'flex'; }
+    function closeImportModal(){ document.getElementById('import-modal').style.display = 'none'; }
 
     function onStageAdded(event) {
       if (event.detail.successful) {
         closeAddModal();
         showToast('Стадия успешно добавлена', 'success');
+      }
+    }
+
+    function onImportDone(event) {
+      if (event.detail.successful) {
+        closeImportModal();
+        showToast('Стадии импортированы', 'success');
       }
     }
 </script>
