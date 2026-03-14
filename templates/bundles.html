@@ -1,0 +1,385 @@
+{% extends "layout.html" %}
+
+{% block title %}Пакеты релизов — GitLab Panel{% endblock %}
+
+{% block breadcrumbs %}
+<a href="/">Главная</a>
+<span class="sep">/</span>
+<span class="current">Пакеты релизов</span>
+{% endblock %}
+
+{% block topbar_actions %}
+<button class="btn btn-primary" onclick="openCreateModal()">
+    <svg viewBox="0 0 16 16" fill="currentColor">
+        <path d="M8 2a.5.5 0 0 1 .5.5v5h5a.5.5 0 0 1 0 1h-5v5a.5.5 0 0 1-1 0v-5h-5a.5.5 0 0 1 0-1h5v-5A.5.5 0 0 1 8 2"/>
+    </svg>
+    Создать пакет
+</button>
+{% endblock %}
+
+{% block content %}
+
+<div class="page-header">
+    <div>
+        <div class="page-title">Пакеты релизов</div>
+        <div class="page-subtitle">Группировка релизов для кросс-проектной доставки</div>
+    </div>
+</div>
+
+<div id="bundles-table">
+    {% include "partials/bundles_table.html" %}
+</div>
+
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+    let createItemCounter = 0;
+
+    function openCreateModal() {
+        const modal = document.getElementById('create-bundle-modal');
+        modal.style.display = 'flex';
+        document.getElementById('create-bundle-form').reset();
+        document.getElementById('bundle-items-container').innerHTML = '';
+        createItemCounter = 0;
+    }
+
+    function closeCreateModal() {
+        document.getElementById('create-bundle-modal').style.display = 'none';
+    }
+
+    async function onCreateBundleSubmit(event) {
+        event.preventDefault();
+
+        const form = document.getElementById('create-bundle-form');
+        const formData = new FormData(form);
+
+        // Собираем элементы пакета
+        const itemRows = document.querySelectorAll('#bundle-items-container .bundle-item-row');
+        const items = [];
+
+        itemRows.forEach(row => {
+            const projectSelect = row.querySelector('select[name^="project_"]');
+            const releaseSelect = row.querySelector('select[name^="release_"]');
+
+            if (projectSelect && releaseSelect && projectSelect.value && releaseSelect.value) {
+                const gitlabProjectId = projectSelect.selectedOptions[0]?.getAttribute('data-gitlab-id');
+                items.push({
+                    project_id: gitlabProjectId,
+                    release_id: releaseSelect.value
+                });
+            }
+        });
+
+        // Проверяем минимальное количество элементов
+        if (items.length < 2) {
+            showToast('Пакет должен содержать минимум 2 проекта', 'warning');
+            return;
+        }
+
+        // Проверяем на дубликаты проектов
+        const projectIds = items.map(item => item.project_id);
+        const uniqueProjectIds = new Set(projectIds);
+        if (projectIds.length !== uniqueProjectIds.size) {
+            showToast('Каждый проект может быть выбран только один раз в пакете', 'warning');
+            return;
+        }
+
+        // Добавляем элементы в formData
+        formData.append('items', JSON.stringify(items));
+        
+        try {
+            const response = await fetch('/api/bundles/create-with-items', {
+                method: 'POST',
+                body: formData
+            });
+            
+            if (response.ok) {
+                const html = await response.text();
+                document.getElementById('bundles-table').outerHTML = html;
+                closeCreateModal();
+                showToast('Пакет успешно создан', 'success');
+            } else {
+                showToast('Ошибка при создании пакета', 'danger');
+            }
+        } catch (e) {
+            showToast('Ошибка при создании пакета', 'danger');
+        }
+    }
+
+    function onBundleUpdated(event) {
+        if (event.detail.successful) {
+            closeEditModal();
+            showToast('Пакет успешно обновлён', 'success');
+        }
+    }
+
+    function openEditModal(bundleId) {
+        const modal = document.getElementById('edit-bundle-modal');
+        modal.style.display = 'flex';
+        htmx.ajax('GET', `/api/bundles/${bundleId}/edit`, {
+            target: '#edit-bundle-form-container',
+            swap: 'outerHTML'
+        });
+    }
+
+    function closeEditModal() {
+        document.getElementById('edit-bundle-modal').style.display = 'none';
+    }
+
+    function confirmDelete(bundleId, bundleName) {
+        if (confirm(`Удалить пакет "${bundleName}"?`)) {
+            htmx.ajax('POST', `/api/bundles/${bundleId}/delete`, {
+                target: '#bundles-table',
+                swap: 'outerHTML'
+            });
+            showToast('Пакет удалён', 'success');
+        }
+    }
+
+    // Добавление строки проекта в режиме создания
+    function addBundleItemRow() {
+        createItemCounter++;
+        const container = document.getElementById('bundle-items-container');
+        const rowId = `create-item-${createItemCounter}`;
+
+        const row = document.createElement('div');
+        row.className = 'bundle-item-row';
+        row.id = rowId;
+        row.innerHTML = `
+            <div class="bundle-item-fields">
+                <select class="form-select" name="project_${createItemCounter}" 
+                        onchange="onProjectSelect(this, ${createItemCounter})"
+                        data-placeholder="Выберите проект">
+                    <option value="">Выберите проект</option>
+                </select>
+                <span class="bundle-item-arrow" style="display:none">→</span>
+                <select class="form-select" name="release_${createItemCounter}" 
+                        disabled style="display:none">
+                    <option value="">Выберите релиз</option>
+                </select>
+                <button type="button" class="btn btn-danger btn-sm" onclick="removeCreateItemRow('${rowId}')">
+                    <svg viewBox="0 0 16 16" fill="currentColor" width="14" height="14">
+                        <path d="M5.5 5.5A.5.5 0 0 1 6 6v6a.5.5 0 0 1-1 0V6a.5.5 0 0 1 .5-.5m2.5 0a.5.5 0 0 1 .5.5v6a.5.5 0 0 1-1 0V6a.5.5 0 0 1 .5-.5m3 .5a.5.5 0 0 0-1 0v6a.5.5 0 0 0 1 0z"/>
+                        <path d="M14.5 3a1 1 0 0 1-1 1H13v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V4h-.5a1 1 0 0 1-1-1V2a1 1 0 0 1 1-1H6a1 1 0 0 1 1-1h2a1 1 0 0 1 1 1h3.5a1 1 0 0 1 1 1zM4.118 4 4 4.059V13a1 1 0 0 0 1 1h6a1 1 0 0 0 1-1V4.059L11.882 4zM2.5 3h11V2h-11z"/>
+                    </svg>
+                </button>
+            </div>
+        `;
+        container.appendChild(row);
+
+        // Загрузка доступных проектов
+        loadAvailableProjects(createItemCounter);
+    }
+
+    function loadAvailableProjects(itemCounter) {
+        // Для нового пакета все проекты доступны
+        fetch('/api/bundles/new-projects/available')
+            .then(r => r.text())
+            .then(html => {
+                const select = document.querySelector(`select[name="project_${itemCounter}"]`);
+                if (select) {
+                    select.innerHTML = '<option value="">Выберите проект</option>' + html;
+                    // Обновляем список доступных проектов после загрузки
+                    updateAvailableProjects();
+                }
+            });
+    }
+
+    function onProjectSelect(select, itemCounter) {
+        const projectId = select.value;
+        const gitlabProjectId = select.selectedOptions[0]?.getAttribute('data-gitlab-id');
+        const row = select.closest('.bundle-item-row');
+        const releaseSelect = row.querySelector(`select[name="release_${itemCounter}"]`);
+        const arrow = row.querySelector('.bundle-item-arrow');
+
+        if (!releaseSelect) {
+            console.error('Release select not found for itemCounter:', itemCounter);
+            return;
+        }
+
+        // Обновляем список доступных проектов во всех селектах
+        updateAvailableProjects();
+
+        if (projectId) {
+            releaseSelect.disabled = false;
+            releaseSelect.style.display = 'inline-block';
+            arrow.style.display = 'inline';
+
+            // Загрузка релизов проекта (используем gitlab_project_id для API)
+            fetch(`/api/projects/${gitlabProjectId}/releases/in-progress`)
+                .then(r => r.text())
+                .then(html => {
+                    console.log('Loaded releases HTML:', html);
+                    releaseSelect.innerHTML = '<option value="">Выберите релиз</option>' + html;
+                })
+                .catch(e => console.error('Error loading releases:', e));
+        } else {
+            releaseSelect.disabled = true;
+            releaseSelect.style.display = 'none';
+            arrow.style.display = 'none';
+            releaseSelect.innerHTML = '<option value="">Выберите релиз</option>';
+        }
+    }
+
+    function updateAvailableProjects() {
+        // Собираем все выбранные project_id
+        const selectedProjectIds = new Set();
+        document.querySelectorAll('#bundle-items-container .bundle-item-row select[name^="project_"]').forEach(select => {
+            if (select.value) {
+                selectedProjectIds.add(select.value);
+            }
+        });
+
+        // Обновляем каждый select
+        document.querySelectorAll('#bundle-items-container .bundle-item-row select[name^="project_"]').forEach(select => {
+            const currentValue = select.value;
+            const options = Array.from(select.options);
+
+            options.forEach(option => {
+                if (option.value === '') return; // Пропускаем placeholder
+
+                const isSelected = selectedProjectIds.has(option.value);
+                const isCurrentValue = option.value === currentValue;
+
+                // Дизейблим выбранные проекты в других селектах
+                option.disabled = isSelected && !isCurrentValue;
+            });
+        });
+    }
+
+    function removeCreateItemRow(rowId) {
+        const row = document.getElementById(rowId);
+        if (row) {
+            row.remove();
+            // Обновляем список доступных проектов после удаления
+            updateAvailableProjects();
+        }
+    }
+
+    // Для режима редактирования
+    function addEditBundleItemRow(bundleId) {
+        const container = document.getElementById('edit-bundle-items-container');
+        const rowId = `edit-item-new-${Date.now()}`;
+
+        const row = document.createElement('div');
+        row.className = 'bundle-item-row';
+        row.id = rowId;
+        row.innerHTML = `
+            <div class="bundle-item-fields">
+                <select class="form-select" name="new_project" 
+                        onchange="onEditProjectSelect(this, '${rowId}', ${bundleId})"
+                        data-placeholder="Выберите проект">
+                    <option value="">Выберите проект</option>
+                </select>
+                <span class="bundle-item-arrow" style="display:none">→</span>
+                <select class="form-select" name="new_release" 
+                        disabled style="display:none">
+                    <option value="">Выберите релиз</option>
+                </select>
+                <button type="button" class="btn btn-danger btn-sm" onclick="removeEditItemRow('${rowId}')">
+                    <svg viewBox="0 0 16 16" fill="currentColor" width="14" height="14">
+                        <path d="M5.5 5.5A.5.5 0 0 1 6 6v6a.5.5 0 0 1-1 0V6a.5.5 0 0 1 .5-.5m2.5 0a.5.5 0 0 1 .5.5v6a.5.5 0 0 1-1 0V6a.5.5 0 0 1 .5-.5m3 .5a.5.5 0 0 0-1 0v6a.5.5 0 0 0 1 0z"/>
+                        <path d="M14.5 3a1 1 0 0 1-1 1H13v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V4h-.5a1 1 0 0 1-1-1V2a1 1 0 0 1 1-1H6a1 1 0 0 1 1-1h2a1 1 0 0 1 1 1h3.5a1 1 0 0 1 1 1zM4.118 4 4 4.059V13a1 1 0 0 0 1 1h6a1 1 0 0 0 1-1V4.059L11.882 4zM2.5 3h11V2h-11z"/>
+                    </svg>
+                </button>
+            </div>
+        `;
+        container.appendChild(row);
+
+        // Загрузка доступных проектов для этого бандла
+        fetch(`/api/bundles/${bundleId}/projects/available`)
+            .then(r => r.text())
+            .then(html => {
+                const select = row.querySelector('select[name="new_project"]');
+                select.innerHTML = '<option value="">Выберите проект</option>' + html;
+            });
+    }
+
+    function onEditProjectSelect(select, rowId, bundleId) {
+        const projectId = select.value;
+        const gitlabProjectId = select.selectedOptions[0]?.getAttribute('data-gitlab-id');
+        const row = document.getElementById(rowId);
+        const releaseSelect = row.querySelector('select[name="new_release"]');
+        const arrow = row.querySelector('.bundle-item-arrow');
+
+        // Обновляем список доступных проектов во всех селектах
+        updateEditAvailableProjects();
+
+        if (projectId) {
+            releaseSelect.disabled = false;
+            releaseSelect.style.display = 'inline-block';
+            arrow.style.display = 'inline';
+
+            fetch(`/api/projects/${gitlabProjectId}/releases/in-progress`)
+                .then(r => r.text())
+                .then(html => {
+                    releaseSelect.innerHTML = '<option value="">Выберите релиз</option>' + html;
+                });
+        } else {
+            releaseSelect.disabled = true;
+            releaseSelect.style.display = 'none';
+            arrow.style.display = 'none';
+            releaseSelect.innerHTML = '<option value="">Выберите релиз</option>';
+        }
+    }
+
+    function updateEditAvailableProjects() {
+        // Собираем все выбранные project_id
+        const selectedProjectIds = new Set();
+        document.querySelectorAll('#edit-bundle-items-container .bundle-item-row select[name="new_project"]').forEach(select => {
+            if (select.value) {
+                selectedProjectIds.add(select.value);
+            }
+        });
+
+        // Обновляем каждый select
+        document.querySelectorAll('#edit-bundle-items-container .bundle-item-row select[name="new_project"]').forEach(select => {
+            const currentValue = select.value;
+            const options = Array.from(select.options);
+
+            options.forEach(option => {
+                if (option.value === '') return; // Пропускаем placeholder
+
+                const isSelected = selectedProjectIds.has(option.value);
+                const isCurrentValue = option.value === currentValue;
+
+                // Дизейблим выбранные проекты в других селектах
+                option.disabled = isSelected && !isCurrentValue;
+            });
+        });
+    }
+
+    function removeEditItemRow(rowId) {
+        const row = document.getElementById(rowId);
+        if (row) {
+            row.remove();
+            // Обновляем список доступных проектов после удаления
+            updateEditAvailableProjects();
+        }
+    }
+
+    function updateItemRelease(itemId, releaseId) {
+        // Обновление релиза для существующего элемента
+        const form = document.getElementById('edit-bundle-form');
+        const formData = new FormData();
+        formData.append('release_id', releaseId);
+        
+        fetch(`/api/bundles/items/${itemId}/update`, {
+            method: 'POST',
+            body: formData
+        }).then(() => {
+            showToast('Релиз обновлён', 'success');
+        });
+    }
+
+    function removeItem(itemId, bundleId) {
+        if (confirm('Удалить этот элемент из пакета?')) {
+            htmx.ajax('POST', `/api/bundles/items/${itemId}/delete?bundle_id=${bundleId}`, {
+                target: '#edit-bundle-form-container',
+                swap: 'outerHTML'
+            });
+        }
+    }
+</script>
+{% endblock %}

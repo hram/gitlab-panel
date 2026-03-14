@@ -1,0 +1,3 @@
+{% for project in projects %}
+<option value="{{ project.id }}" data-gitlab-id="{{ project.gitlab_project_id }}">{{ project.name }}</option>
+{% endfor %}

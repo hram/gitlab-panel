@@ -1,0 +1,156 @@
+<div class="table-container">
+    {% if error %}
+    <div class="alert alert-danger">{{ error }}</div>
+    {% endif %}
+
+    {% if bundles %}
+    <table class="table">
+        <thead>
+            <tr>
+                <th style="width: 50%">Пакет</th>
+                <th style="width: 35%">Прогресс</th>
+                <th style="width: 15%">Действия</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for bundle in bundles %}
+            <tr>
+                <td>
+                    <div class="bundle-name">{{ bundle.name }}</div>
+                    <div class="bundle-meta">
+                        {% if bundle.planned_release_date %}
+                        <span class="badge badge-info">План: {{ bundle.planned_release_date }}</span>
+                        {% endif %}
+                        {% if bundle.status %}
+                        <span class="badge badge-{{ bundle.status }}">{{ bundle.status }}</span>
+                        {% endif %}
+                    </div>
+                    <div class="bundle-items">
+                        {% for item in bundle.items %}
+                        <div class="bundle-item">
+                            <span class="bundle-item-project">{{ item.project.name if item.project else 'Project ' ~ item.project_id }}</span>
+                            <span class="bundle-item-arrow">→</span>
+                            <span class="bundle-item-release">{{ item.release.version if item.release else 'Release ' ~ item.release_id }}</span>
+                        </div>
+                        {% endfor %}
+                    </div>
+                </td>
+                <td>
+                    <div class="bundle-progress">
+                        {% for item in bundle.items %}
+                        <div class="progress-item">
+                            <span class="progress-item-name">{{ item.project.name if item.project else 'Project ' ~ item.project_id }}</span>
+                            <div class="progress-bar-container">
+                                <div class="progress-bar" style="width: {{ item.release.progress if item.release else 0 }}%"></div>
+                            </div>
+                            <span class="progress-item-value">{{ item.release.progress if item.release else 0 }}%</span>
+                        </div>
+                        {% endfor %}
+                    </div>
+                </td>
+                <td>
+                    <div class="action-buttons">
+                        <button class="btn btn-sm btn-secondary" onclick="openEditModal({{ bundle.id }})">
+                            <svg viewBox="0 0 16 16" fill="currentColor" width="14" height="14">
+                                <path d="M12.146.146a.5.5 0 0 1 .708 0l3 3a.5.5 0 0 1 0 .708l-10 10a.5.5 0 0 1-.168.11l-5 2a.5.5 0 0 1-.65-.65l2-5a.5.5 0 0 1 .11-.168zM11.207 2.5 13.5 4.793 14.793 3.5 12.5 1.207zm1.586 3L10.5 3.207 4 9.707V10h.5a.5.5 0 0 1 .5.5v.5h.5a.5.5 0 0 1 .5.5v.5h.293zm-9.761 5.175-.106.106-1.528 3.821 3.821-1.528.106-.106A.5.5 0 0 1 5 12.5V12h-.5a.5.5 0 0 1-.5-.5V11h-.5a.5.5 0 0 1-.468-.325"/>
+                            </svg>
+                            Изменить
+                        </button>
+                        <button class="btn btn-sm btn-danger" onclick="confirmDelete({{ bundle.id }}, '{{ bundle.name }}')">
+                            <svg viewBox="0 0 16 16" fill="currentColor" width="14" height="14">
+                                <path d="M5.5 5.5A.5.5 0 0 1 6 6v6a.5.5 0 0 1-1 0V6a.5.5 0 0 1 .5-.5m2.5 0a.5.5 0 0 1 .5.5v6a.5.5 0 0 1-1 0V6a.5.5 0 0 1 .5-.5m3 .5a.5.5 0 0 0-1 0v6a.5.5 0 0 0 1 0z"/>
+                                <path d="M14.5 3a1 1 0 0 1-1 1H13v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V4h-.5a1 1 0 0 1-1-1V2a1 1 0 0 1 1-1H6a1 1 0 0 1 1-1h2a1 1 0 0 1 1 1h3.5a1 1 0 0 1 1 1zM4.118 4 4 4.059V13a1 1 0 0 0 1 1h6a1 1 0 0 0 1-1V4.059L11.882 4zM2.5 3h11V2h-11z"/>
+                            </svg>
+                            Удалить
+                        </button>
+                    </div>
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    {% else %}
+    <div class="empty-state">
+        <p>Пакеты ещё не созданы</p>
+        <button class="btn btn-primary" onclick="openCreateModal()">Создать первый пакет</button>
+    </div>
+    {% endif %}
+</div>
+
+<!-- Modal: Create Bundle -->
+<div class="modal-overlay" id="create-bundle-modal" style="display:none"
+     onclick="if(event.target===this)closeCreateModal()">
+    <div class="modal modal-lg">
+        <div class="modal-header">
+            <div class="modal-title">Создать пакет</div>
+            <button class="modal-close" onclick="closeCreateModal()">
+                <svg viewBox="0 0 16 16" fill="currentColor" width="16" height="16">
+                    <path d="M4.646 4.646a.5.5 0 0 1 .708 0L8 7.293l2.646-2.647a.5.5 0 0 1 .708.708L8.707 8l2.647 2.646a.5.5 0 0 1-.708.708L8 8.707l-2.646 2.647a.5.5 0 0 1-.708-.708L7.293 8 4.646 5.354a.5.5 0 0 1 0-.708"/>
+                </svg>
+            </button>
+        </div>
+        <form id="create-bundle-form" onsubmit="onCreateBundleSubmit(event)">
+            <div class="modal-body">
+                <div class="form-group">
+                    <label class="form-label">Название пакета</label>
+                    <input class="form-input" type="text" name="name"
+                           placeholder="например: Tablet Delivery March 2026" required>
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label class="form-label">Статус</label>
+                        <select class="form-select" name="status" required>
+                            <option value="planned">Планируемый</option>
+                            <option value="in_progress">В работе</option>
+                            <option value="released">Выпущен</option>
+                            <option value="cancelled">Отменён</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Плановая дата релиза</label>
+                        <input class="form-input" type="date" name="planned_release_date">
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Фактическая дата релиза</label>
+                        <input class="form-input" type="date" name="actual_release_date">
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label">Состав пакета</label>
+                    <div id="bundle-items-container" class="bundle-items-editor">
+                        <!-- Динамически добавляемые элементы -->
+                    </div>
+                    <button type="button" class="btn btn-secondary btn-sm" onclick="addBundleItemRow()" style="margin-top: 10px">
+                        <svg viewBox="0 0 16 16" fill="currentColor" width="14" height="14">
+                            <path d="M8 2a.5.5 0 0 1 .5.5v5h5a.5.5 0 0 1 0 1h-5v5a.5.5 0 0 1-1 0v-5h-5a.5.5 0 0 1 0-1h5v-5A.5.5 0 0 1 8 2"/>
+                        </svg>
+                        Добавить проект
+                    </button>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" onclick="closeCreateModal()">Отмена</button>
+                <button type="submit" class="btn btn-primary">Создать пакет</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Modal: Edit Bundle -->
+<div class="modal-overlay" id="edit-bundle-modal" style="display:none"
+     onclick="if(event.target===this)closeEditModal()">
+    <div class="modal modal-lg">
+        <div class="modal-header">
+            <div class="modal-title">Редактировать пакет</div>
+            <button class="modal-close" onclick="closeEditModal()">
+                <svg viewBox="0 0 16 16" fill="currentColor" width="16" height="16">
+                    <path d="M4.646 4.646a.5.5 0 0 1 .708 0L8 7.293l2.646-2.647a.5.5 0 0 1 .708.708L8.707 8l2.647 2.646a.5.5 0 0 1-.708.708L8 8.707l-2.646 2.647a.5.5 0 0 1-.708-.708L7.293 8 4.646 5.354a.5.5 0 0 1 0-.708"/>
+                </svg>
+            </button>
+        </div>
+        <div id="edit-bundle-form-container">
+            <!-- Загружается через HTMX -->
+        </div>
+    </div>
+</div>

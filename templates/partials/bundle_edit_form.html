@@ -1,0 +1,73 @@
+<form id="edit-bundle-form"
+      hx-post="/api/bundles/{{ bundle_id }}/update"
+      hx-target="#bundles-table"
+      hx-swap="outerHTML"
+      hx-on::after-request="onBundleUpdated(event)">
+    <div class="modal-body">
+        {% if error %}
+        <div class="alert alert-danger">{{ error }}</div>
+        {% endif %}
+
+        <div class="form-group">
+            <label class="form-label">Название пакета</label>
+            <input class="form-input" type="text" name="name"
+                   value="{{ bundle.name }}" required>
+        </div>
+        <div class="form-row">
+            <div class="form-group">
+                <label class="form-label">Статус</label>
+                <select class="form-select" name="status" required>
+                    <option value="planned" {% if bundle.status == 'planned' %}selected{% endif %}>Планируемый</option>
+                    <option value="in_progress" {% if bundle.status == 'in_progress' %}selected{% endif %}>В работе</option>
+                    <option value="released" {% if bundle.status == 'released' %}selected{% endif %}>Выпущен</option>
+                    <option value="cancelled" {% if bundle.status == 'cancelled' %}selected{% endif %}>Отменён</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label class="form-label">Плановая дата релиза</label>
+                <input class="form-input" type="date" name="planned_release_date"
+                       value="{{ bundle.planned_release_date if bundle.planned_release_date else '' }}">
+            </div>
+            <div class="form-group">
+                <label class="form-label">Фактическая дата релиза</label>
+                <input class="form-input" type="date" name="actual_release_date"
+                       value="{{ bundle.actual_release_date if bundle.actual_release_date else '' }}">
+            </div>
+        </div>
+
+        <div class="form-group">
+            <label class="form-label">Состав пакета</label>
+            <div id="edit-bundle-items-container" class="bundle-items-editor">
+                {% for item in bundle.items %}
+                <div class="bundle-item-row" data-item-id="{{ item.id }}">
+                    <div class="bundle-item-fields">
+                        <span class="bundle-item-project-name">{{ item.project.name if item.project else 'Project ' ~ item.project_id }}</span>
+                        <span class="bundle-item-arrow">→</span>
+                        <select class="form-select" name="release_{{ item.id }}" onchange="updateItemRelease({{ item.id }}, this.value)">
+                            {% if item.release %}
+                            <option value="{{ item.release.id }}" selected>{{ item.release.version }}</option>
+                            {% endif %}
+                        </select>
+                    </div>
+                    <button type="button" class="btn btn-danger btn-sm" onclick="removeItem({{ item.id }}, {{ bundle_id }})">
+                        <svg viewBox="0 0 16 16" fill="currentColor" width="14" height="14">
+                            <path d="M5.5 5.5A.5.5 0 0 1 6 6v6a.5.5 0 0 1-1 0V6a.5.5 0 0 1 .5-.5m2.5 0a.5.5 0 0 1 .5.5v6a.5.5 0 0 1-1 0V6a.5.5 0 0 1 .5-.5m3 .5a.5.5 0 0 0-1 0v6a.5.5 0 0 0 1 0z"/>
+                            <path d="M14.5 3a1 1 0 0 1-1 1H13v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V4h-.5a1 1 0 0 1-1-1V2a1 1 0 0 1 1-1H6a1 1 0 0 1 1-1h2a1 1 0 0 1 1 1h3.5a1 1 0 0 1 1 1zM4.118 4 4 4.059V13a1 1 0 0 0 1 1h6a1 1 0 0 0 1-1V4.059L11.882 4zM2.5 3h11V2h-11z"/>
+                        </svg>
+                    </button>
+                </div>
+                {% endfor %}
+            </div>
+            <button type="button" class="btn btn-secondary btn-sm" onclick="addEditBundleItemRow({{ bundle_id }})" style="margin-top: 10px">
+                <svg viewBox="0 0 16 16" fill="currentColor" width="14" height="14">
+                    <path d="M8 2a.5.5 0 0 1 .5.5v5h5a.5.5 0 0 1 0 1h-5v5a.5.5 0 0 1-1 0v-5h-5a.5.5 0 0 1 0-1h5v-5A.5.5 0 0 1 8 2"/>
+                </svg>
+                Добавить проект
+            </button>
+        </div>
+    </div>
+    <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" onclick="closeEditModal()">Отмена</button>
+        <button type="submit" class="btn btn-primary">Сохранить</button>
+    </div>
+</form>

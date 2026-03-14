@@ -7,6 +7,7 @@ from app.api import routes_branches
 from app.api import routes_projects
 from app.api import routes_releases
 from app.api import routes_stages
+from app.api import routes_bundles
 from app.infrastructure.database import init_db
 
 # Настраиваем логирование
@@ -26,3 +27,4 @@ app.include_router(routes_branches.router)
 app.include_router(routes_projects.router)
 app.include_router(routes_releases.router)
 app.include_router(routes_stages.router)
+app.include_router(routes_bundles.router)
