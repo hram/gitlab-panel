@@ -338,6 +338,12 @@ a:hover { color: var(--accent-hover); }
 
 .btn:active { transform: scale(0.98); }
 
+.btn:disabled, .btn[disabled] {
+  opacity: 0.4;
+  cursor: not-allowed;
+  pointer-events: none;
+}
+
 .btn svg { width: 14px; height: 14px; flex-shrink: 0; }
 
 .btn-primary {
@@ -1250,6 +1256,59 @@ tbody td {
 }
 .sla-exceeded {
   color: var(--status-danger);
+}
+
+/* === Import wizard === */
+.import-versions-list {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  max-height: 340px;
+  overflow-y: auto;
+}
+
+.import-version-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 10px;
+  border-radius: var(--radius-md);
+  cursor: pointer;
+  border: 1px solid transparent;
+  transition: background var(--transition), border-color var(--transition);
+}
+
+.import-version-item:hover {
+  background: var(--bg-hover);
+}
+
+.import-version-item input[type=checkbox] {
+  accent-color: var(--accent);
+  width: 15px;
+  height: 15px;
+  flex-shrink: 0;
+  cursor: pointer;
+}
+
+.import-version-item:has(input:checked) {
+  background: var(--bg-active);
+  border-color: var(--accent);
+}
+
+.import-stages-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.import-stage-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 12px;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--border);
+  background: var(--bg-elevated);
 }
 .release-summary-divider {
   border: none;

@@ -420,6 +420,39 @@ def calculate_release_progress(
     })
 
 
+@router.get("/api/projects/{project_id}/releases/import/gitlab-versions")
+def get_gitlab_versions(project_id: int):
+    """
+    Возвращает список уникальных версий релизов из веток GitLab.
+    Фильтрует ветки по паттерну <stage>/<semver>, например develop/1.6.0.
+    Сортирует по SemVer убыванию (новые сверху).
+    """
+    import re
+    semver_pattern = re.compile(r'^\d+\.\d+\.\d+$')
+
+    try:
+        branches = branch_service.list_branches(project_id=project_id)
+    except Exception as e:
+        return JSONResponse({"error": str(e)}, status_code=500)
+
+    versions = set()
+    branch_data = []
+    for branch in branches:
+        parts = branch.name.split("/")
+        if len(parts) == 2:
+            stage, version = parts[0], parts[1]
+            if semver_pattern.match(version):
+                versions.add(version)
+                branch_data.append({"stage": stage, "version": version})
+
+    def semver_key(v):
+        return tuple(int(x) for x in v.split("."))
+
+    sorted_versions = sorted(versions, key=semver_key, reverse=True)
+
+    return JSONResponse({"versions": sorted_versions, "branch_data": branch_data})
+
+
 @router.get("/api/projects/{project_id}/releases/check-commits")
 def check_releases_commits(
     request: Request,

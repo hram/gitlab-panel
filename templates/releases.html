@@ -173,10 +173,47 @@
     </div>
 </div>
 
+<!-- ===== МОДАЛКА ИМПОРТА ИЗ GITLAB (ВИЗАРД) ===== -->
+<div class="modal-overlay" id="import-modal" style="display:none"
+     onclick="if(event.target===this)closeImportModal()">
+    <div class="modal" style="max-width:520px">
+
+        <div class="modal-header">
+            <div style="display:flex;flex-direction:column;gap:4px">
+                <div class="modal-title">Импорт из GitLab</div>
+                <div id="import-step-label" style="font-size:12px;color:var(--text-muted)">Шаг 1 — выбор релизов</div>
+            </div>
+            <button class="modal-close" onclick="closeImportModal()">
+                <svg viewBox="0 0 16 16" fill="currentColor" width="16" height="16">
+                    <path d="M4.646 4.646a.5.5 0 0 1 .708 0L8 7.293l2.646-2.647a.5.5 0 0 1 .708.708L8.707 8l2.647 2.646a.5.5 0 0 1-.708.708L8 8.707l-2.646 2.647a.5.5 0 0 1-.708-.708L7.293 8 4.646 5.354a.5.5 0 0 1 0-.708"/>
+                </svg>
+            </button>
+        </div>
+
+        <div class="modal-body" id="import-modal-body">
+            <!-- заполняется динамически -->
+        </div>
+
+        <div class="modal-footer">
+            <button type="button" class="btn btn-secondary" onclick="closeImportModal()">Отмена</button>
+            <button type="button" class="btn btn-primary" id="import-next-btn" disabled onclick="importNextStep()">
+                Далее
+                <svg viewBox="0 0 16 16" fill="currentColor" width="14" height="14">
+                    <path fill-rule="evenodd" d="M4.646 1.646a.5.5 0 0 1 .708 0l6 6a.5.5 0 0 1 0 .708l-6 6a.5.5 0 0 1-.708-.708L10.293 8 4.646 2.354a.5.5 0 0 1 0-.708z"/>
+                </svg>
+            </button>
+        </div>
+
+    </div>
+</div>
+
 {% endblock %}
 
 {% block extra_scripts %}
 <script>
+    const GITLAB_PROJECT_ID = {{ project_id }};
+    const PROJECT_HAS_STAGES = {{ 'true' if stages else 'false' }};
+
     function openAddModal()  { document.getElementById('add-modal').style.display = 'flex'; }
     function closeAddModal() { document.getElementById('add-modal').style.display = 'none'; }
 
@@ -185,6 +222,211 @@
         closeAddModal();
         showToast('Релиз успешно добавлен', 'success');
       }
+    }
+
+    // ===== ВИЗАРД ИМПОРТА =====
+
+    let importCurrentStep = 1;
+    let importBranchData = [];
+    let importSelectedVersions = [];
+    let importStageOrders = {};   // { stageName: order }
+    let importVersionSuffix = '';
+
+    function openImportModal() {
+        importCurrentStep = 1;
+        importBranchData = [];
+        importSelectedVersions = [];
+        importStageOrders = {};
+        importVersionSuffix = '';
+        setNextBtn(false);
+        document.getElementById('import-modal').style.display = 'flex';
+        loadGitlabVersions();
+    }
+
+    function closeImportModal() {
+        document.getElementById('import-modal').style.display = 'none';
+    }
+
+    function setNextBtn(enabled) {
+        document.getElementById('import-next-btn').disabled = !enabled;
+    }
+
+    function setStepLabel(text) {
+        document.getElementById('import-step-label').textContent = text;
+    }
+
+    // --- Шаг 1: загрузка и выбор версий ---
+
+    async function loadGitlabVersions() {
+        setStepLabel('Шаг 1 — выбор релизов');
+        const body = document.getElementById('import-modal-body');
+        body.innerHTML = `
+            <div style="display:flex;flex-direction:column;align-items:center;gap:12px;padding:24px 0;color:var(--text-muted)">
+                <svg viewBox="0 0 16 16" fill="currentColor" width="24" height="24" style="animation:spin 1s linear infinite;opacity:0.5">
+                    <path d="M8 3a5 5 0 1 0 5 5 .5.5 0 0 1 1 0 6 6 0 1 1-6-6 .5.5 0 0 1 0 1"/>
+                </svg>
+                <span style="font-size:13px">Загружаем ветки из GitLab…</span>
+            </div>`;
+
+        try {
+            const resp = await fetch(`/api/projects/${GITLAB_PROJECT_ID}/releases/import/gitlab-versions`);
+            const data = await resp.json();
+            if (data.error) { showImportError(data.error); return; }
+            importBranchData = data.branch_data || [];
+            renderVersionsList(data.versions);
+        } catch (e) {
+            showImportError('Не удалось подключиться к GitLab');
+        }
+    }
+
+    function showImportError(msg) {
+        document.getElementById('import-modal-body').innerHTML = `
+            <div class="toast toast-danger" style="position:static;margin:0">
+                <svg viewBox="0 0 16 16" fill="var(--status-danger)" width="16" height="16" style="flex-shrink:0">
+                    <path d="M8.982 1.566a1.13 1.13 0 0 0-1.96 0L.165 13.233c-.457.778.091 1.767.98 1.767h13.713c.889 0 1.438-.99.98-1.767L8.982 1.566zM8 5c.535 0 .954.462.9.995l-.35 3.507a.552.552 0 0 1-1.1 0L7.1 5.995A.905.905 0 0 1 8 5zm.002 6a1 1 0 1 1 0 2 1 1 0 0 1 0-2z"/>
+                </svg>
+                ${msg}
+            </div>`;
+    }
+
+    function renderVersionsList(versions) {
+        const body = document.getElementById('import-modal-body');
+
+        if (!versions || versions.length === 0) {
+            body.innerHTML = `<div style="text-align:center;padding:24px 0;color:var(--text-muted);font-size:13px">
+                Не найдено веток в формате &lt;стадия&gt;/&lt;версия&gt;
+            </div>`;
+            return;
+        }
+
+        const items = versions.map(v => `
+            <label class="import-version-item">
+                <input type="checkbox" value="${v}">
+                <span style="font-family:var(--font-mono);font-size:13px;color:var(--text-primary)">${v}</span>
+            </label>
+        `).join('');
+
+        body.innerHTML = `
+            <div style="margin-bottom:10px;font-size:12px;color:var(--text-muted)">
+                Найдено релизов: <strong style="color:var(--text-primary)">${versions.length}</strong> — выберите нужные
+            </div>
+            <div class="import-versions-list">${items}</div>`;
+
+        body.querySelector('.import-versions-list').addEventListener('click', function(e) {
+            if (e.target.type === 'checkbox') {
+                const checked = this.querySelectorAll('input[type=checkbox]:checked').length;
+                setNextBtn(checked > 0);
+            }
+        });
+    }
+
+    // --- Шаг 2: настройка стадий (только если стадий нет) ---
+
+    function renderStagesStep() {
+        importCurrentStep = 2;
+        setStepLabel('Шаг 2 — настройка стадий');
+        setNextBtn(false);
+
+        const stages = [...new Set(
+            importBranchData
+                .filter(b => importSelectedVersions.includes(b.version))
+                .map(b => b.stage)
+        )];
+
+        const body = document.getElementById('import-modal-body');
+
+        const items = stages.map(stage => `
+            <div class="import-stage-item">
+                <span style="font-family:var(--font-mono);font-size:13px;color:var(--text-primary);flex:1">${stage}</span>
+                <div style="display:flex;align-items:center;gap:8px">
+                    <label style="font-size:12px;color:var(--text-muted)">Порядковый номер</label>
+                    <input class="form-input stage-order-input"
+                           type="number" min="0" data-stage="${stage}"
+                           style="width:80px;padding:4px 8px;font-size:13px"
+                           placeholder="0">
+                </div>
+            </div>
+        `).join('');
+
+        body.innerHTML = `
+            <div style="margin-bottom:12px;font-size:12px;color:var(--text-muted)">
+                Выявленные стадии — задайте порядковый номер каждой
+            </div>
+            <div class="import-stages-list">${items}</div>`;
+
+        body.querySelector('.import-stages-list').addEventListener('input', function(e) {
+            if (e.target.classList.contains('stage-order-input')) {
+                validateStageOrders();
+            }
+        });
+    }
+
+    function validateStageOrders() {
+        const inputs = document.querySelectorAll('.stage-order-input');
+        const values = Array.from(inputs).map(i => i.value.trim());
+        const allFilled = values.every(v => v !== '');
+        const allUnique = new Set(values).size === values.length;
+        setNextBtn(allFilled && allUnique);
+    }
+
+    function collectStageOrders() {
+        importStageOrders = {};
+        document.querySelectorAll('.stage-order-input').forEach(input => {
+            importStageOrders[input.dataset.stage] = parseInt(input.value);
+        });
+    }
+
+    // --- Шаг 3: суффикс версии ---
+
+    function renderSuffixStep() {
+        const stepNum = PROJECT_HAS_STAGES ? 2 : 3;
+        importCurrentStep = 3;
+        setStepLabel(`Шаг ${stepNum} — суффикс версии`);
+        setNextBtn(true);
+
+        const body = document.getElementById('import-modal-body');
+        body.innerHTML = `
+            <div class="form-group" style="margin-bottom:0">
+                <label class="form-label">Суффикс версии</label>
+                <input class="form-input" type="text" id="import-suffix-input"
+                       placeholder="например: Release 1.6"
+                       value="${importVersionSuffix}">
+                <div class="form-hint">Используется для поиска релиза в Jira</div>
+            </div>`;
+    }
+
+    function collectSuffix() {
+        const input = document.getElementById('import-suffix-input');
+        importVersionSuffix = input ? input.value.trim() : '';
+    }
+
+    // --- Диспетчер кнопки "Далее" ---
+
+    function importNextStep() {
+        if (importCurrentStep === 1) {
+            importSelectedVersions = Array.from(
+                document.querySelectorAll('.import-versions-list input[type=checkbox]:checked')
+            ).map(cb => cb.value);
+
+            if (!PROJECT_HAS_STAGES) {
+                renderStagesStep();
+            } else {
+                renderSuffixStep();
+            }
+            return;
+        }
+
+        if (importCurrentStep === 2) {
+            collectStageOrders();
+            renderSuffixStep();
+            return;
+        }
+
+        if (importCurrentStep === 3) {
+            collectSuffix();
+            // Шаг 4 — будет реализован позже
+            console.log('Импорт:', { importSelectedVersions, importStageOrders, importVersionSuffix });
+        }
     }
 </script>
 {% endblock %}
