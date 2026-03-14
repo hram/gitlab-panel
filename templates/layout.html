@@ -46,7 +46,7 @@
             <div class="nav-section">
                 <div class="nav-section-label">Управление</div>
 
-                <a href="/projects" class="nav-link {% if '/projects' in request.url.path %}active{% endif %}">
+                <a href="/projects" class="nav-link {% if request.url.path == '/projects' or request.url.path.startswith('/projects/') %}active{% endif %}">
                     <svg viewBox="0 0 16 16" fill="currentColor">
                         <path d="M1 2.5A1.5 1.5 0 0 1 2.5 1h3A1.5 1.5 0 0 1 7 2.5v3A1.5 1.5 0 0 1 5.5 7h-3A1.5 1.5 0 0 1 1 5.5zm8 0A1.5 1.5 0 0 1 10.5 1h3A1.5 1.5 0 0 1 15 2.5v3A1.5 1.5 0 0 1 13.5 7h-3A1.5 1.5 0 0 1 9 5.5zm-8 8A1.5 1.5 0 0 1 2.5 9h3A1.5 1.5 0 0 1 7 10.5v3A1.5 1.5 0 0 1 5.5 15h-3A1.5 1.5 0 0 1 1 13.5zm8 0A1.5 1.5 0 0 1 10.5 9h3A1.5 1.5 0 0 1 15 10.5v3A1.5 1.5 0 0 1 13.5 15h-3A1.5 1.5 0 0 1 9 13.5z"/>
                     </svg>
@@ -58,6 +58,18 @@
                         <path fill-rule="evenodd" d="M11.75 2.5a.75.75 0 1 0 1.5 0 .75.75 0 0 0-1.5 0zm.75 2.75a2.25 2.25 0 1 1-2.25 0v-.5a3.75 3.75 0 1 0 2.25 3.5v-.5a2.25 2.25 0 0 1-2.25-2.5zm-9.75 2a.75.75 0 1 1 0-1.5.75.75 0 0 1 0 1.5zm0 6.5a.75.75 0 1 1 0-1.5.75.75 0 0 1 0 1.5zM1 6.5a1.75 1.75 0 1 0 3.5 0A1.75 1.75 0 0 0 1 6.5zm1.75 7.25a1.75 1.75 0 1 0 0-3.5 1.75 1.75 0 0 0 0 3.5zM2.5 7.25v5a.5.5 0 0 0 .5.5h6.25a.5.5 0 0 0 0-1H3.5V7.25a.5.5 0 0 0-1 0z"/>
                     </svg>
                     Ветки
+                </a>
+            </div>
+
+            <div class="nav-section">
+                <div class="nav-section-label">Аналитика</div>
+
+                <a href="/analytics/projects" class="nav-link {% if '/analytics' in request.url.path %}active{% endif %}">
+                    <svg viewBox="0 0 16 16" fill="currentColor">
+                        <path d="M14 11V2a1 1 0 0 0-1-1H3a1 1 0 0 0-1 1v9z"/>
+                        <path d="M5.5 1a.5.5 0 0 1 .5.5v5a.5.5 0 0 1-1 0v-5A.5.5 0 0 1 5.5 1m3 0a.5.5 0 0 1 .5.5v5a.5.5 0 0 1-1 0v-5A.5.5 0 0 1 8.5 1m3 0a.5.5 0 0 1 .5.5v5a.5.5 0 0 1-1 0v-5A.5.5 0 0 1 11.5 1M14 11.5v1.5a1 1 0 0 1-1 1H3a1 1 0 0 1-1-1v-1.5h12z"/>
+                    </svg>
+                    Проекты
                 </a>
             </div>
 

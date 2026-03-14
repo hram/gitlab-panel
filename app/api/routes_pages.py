@@ -71,3 +71,15 @@ def project_stages_page(request: Request, project_id: int):
             "project_name": project.name if project else str(project_id),
         },
     )
+
+
+@router.get("/analytics/projects")
+def analytics_projects_page(request: Request):
+    """Страница аналитики по проектам (заготовка)."""
+    return templates.TemplateResponse(
+        "analytics/projects.html",
+        {
+            "request": request,
+            "project_name": "Аналитика проектов",
+        },
+    )
