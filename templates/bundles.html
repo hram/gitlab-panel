@@ -30,6 +30,84 @@
     {% include "partials/bundles_table.html" %}
 </div>
 
+<!-- Modal: Create Bundle -->
+<div class="modal-overlay" id="create-bundle-modal" style="display:none"
+     onclick="if(event.target===this)closeCreateModal()">
+    <div class="modal modal-lg">
+        <div class="modal-header">
+            <div class="modal-title">Создать пакет</div>
+            <button class="modal-close" onclick="closeCreateModal()">
+                <svg viewBox="0 0 16 16" fill="currentColor" width="16" height="16">
+                    <path d="M4.646 4.646a.5.5 0 0 1 .708 0L8 7.293l2.646-2.647a.5.5 0 0 1 .708.708L8.707 8l2.647 2.646a.5.5 0 0 1-.708.708L8 8.707l-2.646 2.647a.5.5 0 0 1-.708-.708L7.293 8 4.646 5.354a.5.5 0 0 1 0-.708"/>
+                </svg>
+            </button>
+        </div>
+        <form id="create-bundle-form" onsubmit="onCreateBundleSubmit(event)">
+            <div class="modal-body">
+                <div class="form-group">
+                    <label class="form-label">Название пакета</label>
+                    <input class="form-input" type="text" name="name"
+                           placeholder="например: Tablet Delivery March 2026" required>
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label class="form-label">Статус</label>
+                        <select class="form-select" name="status" required>
+                            <option value="planned">Планируемый</option>
+                            <option value="in_progress">В работе</option>
+                            <option value="released">Выпущен</option>
+                            <option value="cancelled">Отменён</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Плановая дата релиза</label>
+                        <input class="form-input" type="date" name="planned_release_date">
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Фактическая дата релиза</label>
+                        <input class="form-input" type="date" name="actual_release_date">
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label">Состав пакета</label>
+                    <div id="bundle-items-container" class="bundle-items-editor">
+                        <!-- Динамически добавляемые элементы -->
+                    </div>
+                    <button type="button" class="btn btn-secondary btn-sm" onclick="addBundleItemRow()" style="margin-top: 10px">
+                        <svg viewBox="0 0 16 16" fill="currentColor" width="14" height="14">
+                            <path d="M8 2a.5.5 0 0 1 .5.5v5h5a.5.5 0 0 1 0 1h-5v5a.5.5 0 0 1-1 0v-5h-5a.5.5 0 0 1 0-1h5v-5A.5.5 0 0 1 8 2"/>
+                        </svg>
+                        Добавить проект
+                    </button>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" onclick="closeCreateModal()">Отмена</button>
+                <button type="submit" class="btn btn-primary">Создать пакет</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Modal: Edit Bundle -->
+<div class="modal-overlay" id="edit-bundle-modal" style="display:none"
+     onclick="if(event.target===this)closeEditModal()">
+    <div class="modal modal-lg">
+        <div class="modal-header">
+            <div class="modal-title">Редактировать пакет</div>
+            <button class="modal-close" onclick="closeEditModal()">
+                <svg viewBox="0 0 16 16" fill="currentColor" width="16" height="16">
+                    <path d="M4.646 4.646a.5.5 0 0 1 .708 0L8 7.293l2.646-2.647a.5.5 0 0 1 .708.708L8.707 8l2.647 2.646a.5.5 0 0 1-.708.708L8 8.707l-2.646 2.647a.5.5 0 0 1-.708-.708L7.293 8 4.646 5.354a.5.5 0 0 1 0-.708"/>
+                </svg>
+            </button>
+        </div>
+        <div id="edit-bundle-form-container">
+            <!-- Загружается через HTMX -->
+        </div>
+    </div>
+</div>
+
 {% endblock %}
 
 {% block extra_scripts %}
@@ -119,7 +197,7 @@
         modal.style.display = 'flex';
         htmx.ajax('GET', `/api/bundles/${bundleId}/edit`, {
             target: '#edit-bundle-form-container',
-            swap: 'outerHTML',
+            swap: 'innerHTML',
             on: {
                 'htmx:afterSwap': function(event) {
                     // Загружаем релизы для существующих элементов
@@ -145,7 +223,10 @@
     }
 
     function closeEditModal() {
-        document.getElementById('edit-bundle-modal').style.display = 'none';
+        const modal = document.getElementById('edit-bundle-modal');
+        modal.style.display = 'none';
+        // Очищаем контейнер формы
+        document.getElementById('edit-bundle-form-container').innerHTML = '';
     }
 
     function confirmDelete(bundleId, bundleName) {
@@ -396,7 +477,7 @@
 
     function onExistingProjectSelect(select, itemId) {
         const gitlabProjectId = select.getAttribute('data-gitlab-id');
-        
+
         if (gitlabProjectId) {
             // Загрузка релизов проекта
             fetch(`/api/projects/${gitlabProjectId}/releases/in-progress`)
@@ -412,7 +493,7 @@
         if (confirm('Удалить этот элемент из пакета?')) {
             htmx.ajax('POST', `/api/bundles/items/${itemId}/delete?bundle_id=${bundleId}`, {
                 target: '#edit-bundle-form-container',
-                swap: 'outerHTML'
+                swap: 'innerHTML'
             });
         }
     }
