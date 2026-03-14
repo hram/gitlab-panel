@@ -43,7 +43,9 @@
                     <div class="bundle-item-fields">
                         <span class="bundle-item-project-name">{{ item.project.name if item.project else 'Project ' ~ item.project_id }}</span>
                         <span class="bundle-item-arrow">→</span>
-                        <select class="form-select" name="release_{{ item.id }}" onchange="updateItemRelease({{ item.id }}, this.value)">
+                        <select class="form-select" name="release_{{ item.id }}" 
+                                data-gitlab-id="{{ item.project.gitlab_project_id if item.project else item.project_id }}"
+                                onchange="onExistingProjectSelect(this, {{ item.id }})">
                             {% if item.release %}
                             <option value="{{ item.release.id }}" selected>{{ item.release.version }}</option>
                             {% endif %}

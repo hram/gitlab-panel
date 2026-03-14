@@ -19,7 +19,10 @@ class ReleaseBundleService:
         return bundles
 
     def get_bundle_by_id(self, bundle_id: int) -> ReleaseBundle | None:
-        return self.bundle_repo.get_bundle_by_id(bundle_id)
+        bundle = self.bundle_repo.get_bundle_by_id(bundle_id)
+        if bundle:
+            bundle.items = self.item_repo.list_items_by_bundle(bundle.id)
+        return bundle
 
     def create_bundle(self, name: str, status: str,
                       planned_release_date: str | None = None,

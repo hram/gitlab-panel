@@ -119,7 +119,28 @@
         modal.style.display = 'flex';
         htmx.ajax('GET', `/api/bundles/${bundleId}/edit`, {
             target: '#edit-bundle-form-container',
-            swap: 'outerHTML'
+            swap: 'outerHTML',
+            on: {
+                'htmx:afterSwap': function(event) {
+                    // Загружаем релизы для существующих элементов
+                    loadExistingItemReleases();
+                }
+            }
+        });
+    }
+
+    function loadExistingItemReleases() {
+        // Находим все select с data-gitlab-id в форме редактирования
+        document.querySelectorAll('#edit-bundle-form-container select[data-gitlab-id]').forEach(select => {
+            const gitlabProjectId = select.getAttribute('data-gitlab-id');
+            if (gitlabProjectId) {
+                fetch(`/api/projects/${gitlabProjectId}/releases/in-progress`)
+                    .then(r => r.text())
+                    .then(html => {
+                        select.innerHTML = '<option value="">Выберите релиз</option>' + html;
+                    })
+                    .catch(e => console.error('Error loading releases:', e));
+            }
         });
     }
 
@@ -364,13 +385,27 @@
         const form = document.getElementById('edit-bundle-form');
         const formData = new FormData();
         formData.append('release_id', releaseId);
-        
+
         fetch(`/api/bundles/items/${itemId}/update`, {
             method: 'POST',
             body: formData
         }).then(() => {
             showToast('Релиз обновлён', 'success');
         });
+    }
+
+    function onExistingProjectSelect(select, itemId) {
+        const gitlabProjectId = select.getAttribute('data-gitlab-id');
+        
+        if (gitlabProjectId) {
+            // Загрузка релизов проекта
+            fetch(`/api/projects/${gitlabProjectId}/releases/in-progress`)
+                .then(r => r.text())
+                .then(html => {
+                    select.innerHTML = '<option value="">Выберите релиз</option>' + html;
+                })
+                .catch(e => console.error('Error loading releases:', e));
+        }
     }
 
     function removeItem(itemId, bundleId) {
