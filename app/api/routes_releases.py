@@ -470,13 +470,18 @@ async def import_preview(project_id: int, request: Request):
     except Exception as e:
         return JSONResponse({"error": str(e)}, status_code=500)
 
-    jira_by_name = {v["name"]: v["id"] for v in all_jira_versions}
+    jira_by_name = {v["name"]: v for v in all_jira_versions}
 
     items = []
     for version in versions:
         jira_name = f"{version} {suffix}" if suffix else version
-        jira_id = jira_by_name.get(jira_name)
-        items.append({"version": version, "jira_name": jira_name, "jira_id": jira_id})
+        jira_version = jira_by_name.get(jira_name)
+        items.append({
+            "version": version,
+            "jira_name": jira_name,
+            "jira_id": jira_version["id"] if jira_version else None,
+            "released": jira_version.get("released", False) if jira_version else False,
+        })
 
     return JSONResponse({"items": items})
 
@@ -512,7 +517,7 @@ async def bulk_create_releases(project_id: int, request: Request):
             release_service.create_release(
                 project_id=project_id,
                 version=r["version"],
-                status="in_progress",
+                status="released" if r.get("released") else "in_progress",
                 stage=first_stage.name,
                 jira_fix_version=r.get("jira_id") or None,
             )

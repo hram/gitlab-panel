@@ -481,11 +481,17 @@
             const jiraCell = item.jira_id
                 ? `<span style="font-family:var(--font-mono);font-size:12px;color:var(--accent)">${item.jira_id}</span>`
                 : `<span style="font-size:12px;color:var(--text-muted)">не найдено</span>`;
+            const statusCell = item.jira_id
+                ? (item.released
+                    ? `<span class="badge badge-success">Released</span>`
+                    : `<span class="badge badge-warning">In Progress</span>`)
+                : `<span style="font-size:12px;color:var(--text-muted)">—</span>`;
             return `
                 <tr>
                     <td style="font-family:var(--font-mono);font-size:13px;color:var(--text-primary)">${item.version}</td>
                     <td style="font-family:var(--font-mono);font-size:12px;color:var(--text-secondary)">${item.jira_name}</td>
                     <td>${jiraCell}</td>
+                    <td>${statusCell}</td>
                 </tr>`;
         }).join('');
 
@@ -499,6 +505,7 @@
                         <th>Версия</th>
                         <th>Имя в Jira</th>
                         <th>Jira ID</th>
+                        <th>Статус</th>
                     </tr></thead>
                     <tbody>${rows}</tbody>
                 </table>
@@ -523,7 +530,7 @@
                     method: 'POST',
                     headers: {'Content-Type': 'application/json'},
                     body: JSON.stringify({
-                        releases: importPreviewItems.map(i => ({version: i.version, jira_id: i.jira_id})),
+                        releases: importPreviewItems.map(i => ({version: i.version, jira_id: i.jira_id, released: i.released})),
                         stage_orders: importStageOrders,
                     }),
                 }
@@ -533,6 +540,7 @@
                 const html = await resp.text();
                 const target = document.getElementById('releases-table-content');
                 if (target) target.outerHTML = html;
+                htmx.process(document.getElementById('releases-table-content'));
                 closeImportModal();
                 showToast(`Импортировано релизов: ${importPreviewItems.length}`, 'success');
             } else {
