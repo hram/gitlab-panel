@@ -268,7 +268,7 @@ def get_available_projects(request: Request, bundle_id: int):
     existing_project_ids = {item.project_id for item in bundle.items} if bundle else set()
 
     all_projects = project_service.list_projects()
-    available_projects = [p for p in all_projects if p.gitlab_project_id not in existing_project_ids]
+    available_projects = [p for p in all_projects if p.id not in existing_project_ids]
 
     return templates.TemplateResponse(
         "partials/bundle_project_options.html",

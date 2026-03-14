@@ -47,80 +47,72 @@
 {% endif %}
 
 {% if result.checks %}
-<div class="accordion" id="commitCheckAccordion">
+<div class="commit-checks">
     {% for check in result.checks %}
-    <div class="accordion-item">
-        <h3 class="accordion-header" id="heading{{ loop.index }}">
-            <button class="accordion-button {% if not check.has_missing_commits %}collapsed{% endif %}"
-                    type="button"
-                    data-bs-toggle="collapse"
-                    data-bs-target="#collapse{{ loop.index }}"
-                    aria-expanded="{% if check.has_missing_commits %}true{% else %}false{% endif %}"
-                    aria-controls="collapse{{ loop.index }}">
+    <div class="commit-check-item {% if check.has_missing_commits %}has-warning is-open{% endif %}"
+         onclick="this.classList.toggle('is-open')">
 
+        <div class="commit-check-header">
+            <div class="commit-check-info">
                 {% if check.has_missing_commits %}
-                <span class="badge badge-warning" style="margin-right:8px">
-                    {{ check.missing_count }} коммитов
-                </span>
+                <span class="badge badge-warning">{{ check.missing_count }} коммитов</span>
                 {% else %}
-                <span class="badge badge-success" style="margin-right:8px">OK</span>
+                <span class="badge badge-success">OK</span>
                 {% endif %}
-
-                <span style="font-family:var(--font-mono);color:var(--text-primary)">{{ check.branch }}</span>
-                <span style="color:var(--text-muted);margin:0 8px">→</span>
-                <span style="font-family:var(--font-mono);color:var(--text-primary)">{{ check.newer_branch }}</span>
-            </button>
-        </h3>
-        <div id="collapse{{ loop.index }}"
-             class="accordion-collapse collapse {% if check.has_missing_commits %}show{% endif %}"
-             aria-labelledby="heading{{ loop.index }}"
-             data-bs-parent="#commitCheckAccordion">
-            <div class="accordion-body">
-                {% if check.has_missing_commits %}
-                <p style="margin-bottom:12px;font-size:13px;color:var(--text-secondary)">
-                    Ветка <code style="font-family:var(--font-mono);color:var(--accent)">{{ check.branch }}</code>
-                    содержит коммиты, которых нет в
-                    <code style="font-family:var(--font-mono);color:var(--accent)">{{ check.newer_branch }}</code>:
-                </p>
-                <div class="table-wrapper">
-                    <table>
-                        <thead>
-                        <tr>
-                            <th>Коммит</th>
-                            <th>Сообщение</th>
-                            <th>Автор</th>
-                            <th>Дата</th>
-                        </tr>
-                        </thead>
-                        <tbody>
-                        {% for commit in check.missing_commits %}
-                        <tr>
-                            <td>
-                                <a href="{{ commit.web_url }}" target="_blank"
-                                   style="font-family:var(--font-mono);font-size:12px;color:var(--accent);text-decoration:none">
-                                    {{ commit.short_id }}
-                                </a>
-                            </td>
-                            <td style="color:var(--text-primary)">{{ commit.title }}</td>
-                            <td style="color:var(--text-secondary);font-size:13px">{{ commit.author_name }}</td>
-                            <td style="color:var(--text-secondary);font-size:13px">
-                                {{ commit.created_at[:10] if commit.created_at else '' }}
-                            </td>
-                        </tr>
-                        {% endfor %}
-                        </tbody>
-                    </table>
-                </div>
-                {% else %}
-                <div style="display:flex;align-items:center;gap:8px;color:var(--status-success)">
-                    <svg viewBox="0 0 16 16" fill="currentColor" width="16" height="16">
-                        <path d="M16 8A8 8 0 1 1 0 8a8 8 0 0 1 16 0zm-3.97-3.03a.75.75 0 0 0-1.08.022L7.477 9.417 5.384 7.323a.75.75 0 0 0-1.06 1.06L6.97 11.03a.75.75 0 0 0 1.079-.02l3.992-4.99a.75.75 0 0 0-.01-1.05z"/>
-                    </svg>
-                    <span>Все коммиты из <code style="font-family:var(--font-mono);color:var(--accent)">{{ check.branch }}</code> присутствуют в <code style="font-family:var(--font-mono);color:var(--accent)">{{ check.newer_branch }}</code></span>
-                </div>
-                {% endif %}
+                <span class="commit-check-branch">{{ check.branch }}</span>
+                <span class="commit-check-sep">→</span>
+                <span class="commit-check-branch">{{ check.newer_branch }}</span>
             </div>
+            <svg class="commit-check-chevron" viewBox="0 0 16 16" fill="currentColor" width="14" height="14">
+                <path d="M1.646 4.646a.5.5 0 0 1 .708 0L8 10.293l5.646-5.647a.5.5 0 0 1 .708.708l-6 6a.5.5 0 0 1-.708 0l-6-6a.5.5 0 0 1 0-.708z"/>
+            </svg>
         </div>
+
+        <div class="commit-check-body">
+            {% if check.has_missing_commits %}
+            <p style="margin-bottom:12px;font-size:13px;color:var(--text-secondary)">
+                Ветка <code class="text-mono" style="color:var(--accent)">{{ check.branch }}</code>
+                содержит коммиты, которых нет в
+                <code class="text-mono" style="color:var(--accent)">{{ check.newer_branch }}</code>:
+            </p>
+            <div class="table-wrapper">
+                <table>
+                    <thead>
+                    <tr>
+                        <th>Коммит</th>
+                        <th>Сообщение</th>
+                        <th>Автор</th>
+                        <th>Дата</th>
+                    </tr>
+                    </thead>
+                    <tbody>
+                    {% for commit in check.missing_commits %}
+                    <tr>
+                        <td>
+                            <a href="{{ commit.web_url }}" target="_blank" class="text-mono"
+                               style="font-size:12px;color:var(--accent)">
+                                {{ commit.short_id }}
+                            </a>
+                        </td>
+                        <td>{{ commit.title }}</td>
+                        <td class="td-muted">{{ commit.author_name }}</td>
+                        <td class="td-muted">{{ commit.created_at[:10] if commit.created_at else '' }}</td>
+                    </tr>
+                    {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            {% else %}
+            <div style="display:flex;align-items:center;gap:8px;color:var(--status-success);font-size:13px">
+                <svg viewBox="0 0 16 16" fill="currentColor" width="16" height="16" style="flex-shrink:0">
+                    <path d="M16 8A8 8 0 1 1 0 8a8 8 0 0 1 16 0zm-3.97-3.03a.75.75 0 0 0-1.08.022L7.477 9.417 5.384 7.323a.75.75 0 0 0-1.06 1.06L6.97 11.03a.75.75 0 0 0 1.079-.02l3.992-4.99a.75.75 0 0 0-.01-1.05z"/>
+                </svg>
+                Все коммиты из <code class="text-mono" style="color:var(--accent)">{{ check.branch }}</code>
+                присутствуют в <code class="text-mono" style="color:var(--accent)">{{ check.newer_branch }}</code>
+            </div>
+            {% endif %}
+        </div>
+
     </div>
     {% endfor %}
 </div>

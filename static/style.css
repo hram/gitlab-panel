@@ -1133,3 +1133,79 @@ tbody td {
 .badge-released::before { background: var(--status-success); }
 .badge-cancelled { background: var(--status-neutral-bg); color: var(--status-neutral); }
 .badge-cancelled::before { background: var(--status-neutral); }
+
+/* =========================================
+   Commit Check Accordion
+   ========================================= */
+
+.commit-checks {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.commit-check-item {
+  background: var(--bg-surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+  transition: border-color var(--transition);
+}
+
+.commit-check-item.has-warning {
+  border-color: rgba(227, 179, 65, 0.25);
+}
+
+.commit-check-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 14px 16px;
+  cursor: pointer;
+  user-select: none;
+  transition: background var(--transition);
+  gap: 12px;
+}
+
+.commit-check-header:hover { background: var(--bg-hover); }
+
+.commit-check-info {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex: 1;
+  min-width: 0;
+}
+
+.commit-check-branch {
+  font-family: var(--font-mono);
+  font-size: 13px;
+  color: var(--text-primary);
+  white-space: nowrap;
+}
+
+.commit-check-sep {
+  color: var(--text-muted);
+  font-size: 13px;
+  flex-shrink: 0;
+}
+
+.commit-check-chevron {
+  color: var(--text-muted);
+  transition: transform var(--transition-md);
+  flex-shrink: 0;
+}
+
+.commit-check-item.is-open .commit-check-chevron {
+  transform: rotate(180deg);
+}
+
+.commit-check-body {
+  display: none;
+  padding: 16px;
+  border-top: 1px solid var(--border);
+}
+
+.commit-check-item.is-open .commit-check-body {
+  display: block;
+}

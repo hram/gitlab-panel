@@ -114,5 +114,22 @@ def init_db():
         """
     )
 
+    # Миграция: конвертируем project_id в release_bundle_items из gitlab_project_id → projects.id.
+    # Актуально для записей, созданных до исправления бага (хранился gitlab_project_id вместо id).
+    conn.execute(
+        """
+        UPDATE release_bundle_items
+        SET project_id = (
+            SELECT p.id FROM projects p
+            WHERE p.gitlab_project_id = CAST(release_bundle_items.project_id AS TEXT)
+        )
+        WHERE project_id NOT IN (SELECT id FROM projects)
+          AND EXISTS (
+            SELECT 1 FROM projects p
+            WHERE p.gitlab_project_id = CAST(release_bundle_items.project_id AS TEXT)
+        )
+        """
+    )
+
     conn.commit()
     conn.close()

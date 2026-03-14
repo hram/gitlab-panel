@@ -139,9 +139,8 @@
             const releaseSelect = row.querySelector('select[name^="release_"]');
 
             if (projectSelect && releaseSelect && projectSelect.value && releaseSelect.value) {
-                const gitlabProjectId = projectSelect.selectedOptions[0]?.getAttribute('data-gitlab-id');
                 items.push({
-                    project_id: gitlabProjectId,
+                    project_id: projectSelect.value,
                     release_id: releaseSelect.value
                 });
             }

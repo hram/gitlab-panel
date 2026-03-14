@@ -15,7 +15,7 @@ class SQLiteReleaseBundleItemRepository:
                    rel.version, rel.status as release_status, rel.stage,
                    rel.start_date, rel.release_date, rel.jira_fix_version, rel.progress
             FROM release_bundle_items rbi
-            JOIN projects p ON rbi.project_id = p.gitlab_project_id
+            JOIN projects p ON rbi.project_id = p.id
             JOIN releases rel ON rbi.release_id = rel.id
             WHERE rbi.bundle_id=?
             """,
@@ -26,14 +26,14 @@ class SQLiteReleaseBundleItemRepository:
         items = []
         for row in rows:
             project = Project(
-                id=None,  # Внутренний ID не используется, важен gitlab_project_id
+                id=row["project_id"],
                 name=row["project_name"],
                 url=row["project_url"],
                 gitlab_project_id=row["gitlab_project_id"],
             )
             release = Release(
                 id=row["release_id"],
-                project_id=row["gitlab_project_id"],  # Используем gitlab_project_id для связи
+                project_id=row["project_id"],
                 version=row["version"],
                 status=row["release_status"],
                 stage=row["stage"],
@@ -45,7 +45,7 @@ class SQLiteReleaseBundleItemRepository:
             item = ReleaseBundleItem(
                 id=row["id"],
                 bundle_id=row["bundle_id"],
-                project_id=row["gitlab_project_id"],  # Используем gitlab_project_id
+                project_id=row["project_id"],
                 release_id=row["release_id"],
                 role=row["role"],
                 project=project,
